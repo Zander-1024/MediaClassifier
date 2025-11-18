@@ -39,18 +39,16 @@ fn extract_exif_date(path: &Path) -> Result<DateTime<Local>> {
         .context("Failed to read EXIF data")?;
 
     // 优先使用 DateTimeOriginal（拍摄时间）
-    if let Some(field) = exif.get_field(exif::Tag::DateTimeOriginal, exif::In::PRIMARY) {
-        if let Some(date) = parse_exif_datetime(&field.display_value().to_string()) {
+    if let Some(field) = exif.get_field(exif::Tag::DateTimeOriginal, exif::In::PRIMARY)
+        && let Some(date) = parse_exif_datetime(&field.display_value().to_string()) {
             return Ok(date);
         }
-    }
 
     // 其次使用 DateTime（修改时间）
-    if let Some(field) = exif.get_field(exif::Tag::DateTime, exif::In::PRIMARY) {
-        if let Some(date) = parse_exif_datetime(&field.display_value().to_string()) {
+    if let Some(field) = exif.get_field(exif::Tag::DateTime, exif::In::PRIMARY)
+        && let Some(date) = parse_exif_datetime(&field.display_value().to_string()) {
             return Ok(date);
         }
-    }
 
     anyhow::bail!("No valid date found in EXIF data")
 }
@@ -63,12 +61,12 @@ fn parse_exif_datetime(datetime_str: &str) -> Option<DateTime<Local>> {
 
     // 尝试解析 "YYYY:MM:DD HH:MM:SS" 格式
     if let Ok(naive) = NaiveDateTime::parse_from_str(datetime_str, "%Y:%m:%d %H:%M:%S") {
-        return Some(Local.from_local_datetime(&naive).single()?);
+        return Local.from_local_datetime(&naive).single();
     }
 
     // 尝试解析 "YYYY-MM-DD HH:MM:SS" 格式
     if let Ok(naive) = NaiveDateTime::parse_from_str(datetime_str, "%Y-%m-%d %H:%M:%S") {
-        return Some(Local.from_local_datetime(&naive).single()?);
+        return Local.from_local_datetime(&naive).single();
     }
 
     None
