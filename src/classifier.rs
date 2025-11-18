@@ -113,23 +113,25 @@ fn build_target_path(
 /// 分类目录的特征：路径中包含 扩展名/日期/ 的模式
 fn is_classified_file(path: &Path) -> bool {
     if let Some(parent) = path.parent()
-        && let Some(date_dir) = parent.file_name() {
-            // 检查父目录名是否是日期格式（8位数字）
-            let date_str = date_dir.to_string_lossy();
-            if date_str.len() == 8 && date_str.chars().all(|c| c.is_ascii_digit()) {
-                // 检查祖父目录是否是扩展名（全大写字母）
-                if let Some(grandparent) = parent.parent()
-                    && let Some(ext_dir) = grandparent.file_name() {
-                        let ext_str = ext_dir.to_string_lossy();
-                        if ext_str
-                            .chars()
-                            .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit())
-                        {
-                            return true;
-                        }
-                    }
+        && let Some(date_dir) = parent.file_name()
+    {
+        // 检查父目录名是否是日期格式（8位数字）
+        let date_str = date_dir.to_string_lossy();
+        if date_str.len() == 8 && date_str.chars().all(|c| c.is_ascii_digit()) {
+            // 检查祖父目录是否是扩展名（全大写字母）
+            if let Some(grandparent) = parent.parent()
+                && let Some(ext_dir) = grandparent.file_name()
+            {
+                let ext_str = ext_dir.to_string_lossy();
+                if ext_str
+                    .chars()
+                    .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit())
+                {
+                    return true;
+                }
             }
         }
+    }
     false
 }
 

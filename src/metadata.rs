@@ -40,15 +40,17 @@ fn extract_exif_date(path: &Path) -> Result<DateTime<Local>> {
 
     // 优先使用 DateTimeOriginal（拍摄时间）
     if let Some(field) = exif.get_field(exif::Tag::DateTimeOriginal, exif::In::PRIMARY)
-        && let Some(date) = parse_exif_datetime(&field.display_value().to_string()) {
-            return Ok(date);
-        }
+        && let Some(date) = parse_exif_datetime(&field.display_value().to_string())
+    {
+        return Ok(date);
+    }
 
     // 其次使用 DateTime（修改时间）
     if let Some(field) = exif.get_field(exif::Tag::DateTime, exif::In::PRIMARY)
-        && let Some(date) = parse_exif_datetime(&field.display_value().to_string()) {
-            return Ok(date);
-        }
+        && let Some(date) = parse_exif_datetime(&field.display_value().to_string())
+    {
+        return Ok(date);
+    }
 
     anyhow::bail!("No valid date found in EXIF data")
 }
