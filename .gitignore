@@ -1,0 +1,21 @@
+# Rust 编译输出
+/target
+
+# 日志文件
+classifier.log
+
+# 测试文件
+test_files/
+
+# IDE 配置
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+
+# 备份文件
+*.bak
