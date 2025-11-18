@@ -3,8 +3,8 @@ use chrono::{DateTime, Local};
 use log::{error, info, warn};
 use std::path::{Path, PathBuf};
 
-use crate::conflict::{resolve_conflict, ConflictResolution};
-use crate::media_types::{get_media_info, is_image_extension, MediaInfo};
+use crate::conflict::{ConflictResolution, resolve_conflict};
+use crate::media_types::{MediaInfo, MediaType, get_media_info};
 use crate::metadata::{extract_date, format_date};
 
 /// 文件分类结果
@@ -13,9 +13,9 @@ pub enum ClassifyResult {
     /// 成功移动文件
     Success { from: PathBuf, to: PathBuf },
     /// 跳过文件（已存在且相同）
-    Skipped { path: PathBuf, reason: String },
+    Skipped { path: PathBuf },
     /// 重命名后移动
-    Renamed { from: PathBuf, to: PathBuf, original_target: PathBuf },
+    Renamed { from: PathBuf, to: PathBuf },
     /// 失败
     Failed { path: PathBuf, error: String },
 }
@@ -30,11 +30,11 @@ pub fn classify_file(source: &Path) -> Result<ClassifyResult> {
                 path: source.to_path_buf(),
                 error: "Not a media file".to_string(),
             });
-        }
+        },
     };
 
     // 2. 提取日期
-    let is_image = is_image_extension(&media_info.extension.to_lowercase());
+    let is_image = media_info.media_type == MediaType::Image;
     let date = match extract_date(source, is_image) {
         Ok(d) => d,
         Err(e) => {
@@ -43,7 +43,7 @@ pub fn classify_file(source: &Path) -> Result<ClassifyResult> {
                 path: source.to_path_buf(),
                 error: format!("Failed to extract date: {}", e),
             });
-        }
+        },
     };
 
     // 3. 构建目标路径
@@ -53,7 +53,6 @@ pub fn classify_file(source: &Path) -> Result<ClassifyResult> {
     if is_classified_file(source) {
         return Ok(ClassifyResult::Skipped {
             path: source.to_path_buf(),
-            reason: "File is already in a classified directory".to_string(),
         });
     }
 
@@ -67,25 +66,26 @@ pub fn classify_file(source: &Path) -> Result<ClassifyResult> {
                 from: source.to_path_buf(),
                 to: final_target,
             })
-        }
+        },
         ConflictResolution::Skip(reason) => {
             // 文件相同，跳过
             info!("Skipped: {:?} - {}", source, reason);
             Ok(ClassifyResult::Skipped {
                 path: source.to_path_buf(),
-                reason,
             })
-        }
+        },
         ConflictResolution::Rename(new_target) => {
             // 文件不同，重命名后移动
             move_file(source, &new_target)?;
-            warn!("File renamed due to conflict: {:?} → {:?}", source, new_target);
+            warn!(
+                "File renamed due to conflict: {:?} → {:?}",
+                source, new_target
+            );
             Ok(ClassifyResult::Renamed {
                 from: source.to_path_buf(),
                 to: new_target,
-                original_target: target,
             })
-        }
+        },
     }
 }
 
@@ -96,11 +96,9 @@ fn build_target_path(
     date: &DateTime<Local>,
 ) -> Result<PathBuf> {
     let current_dir = std::env::current_dir().context("Failed to get current directory")?;
-    
+
     let date_str = format_date(date);
-    let filename = source
-        .file_name()
-        .context("Failed to get filename")?;
+    let filename = source.file_name().context("Failed to get filename")?;
 
     // 构建路径：当前目录/扩展名/日期/文件名
     let target = current_dir
@@ -123,7 +121,10 @@ fn is_classified_file(path: &Path) -> bool {
                 if let Some(grandparent) = parent.parent() {
                     if let Some(ext_dir) = grandparent.file_name() {
                         let ext_str = ext_dir.to_string_lossy();
-                        if ext_str.chars().all(|c| c.is_ascii_uppercase() || c.is_ascii_digit()) {
+                        if ext_str
+                            .chars()
+                            .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit())
+                        {
                             return true;
                         }
                     }
@@ -138,13 +139,11 @@ fn is_classified_file(path: &Path) -> bool {
 fn move_file(source: &Path, target: &Path) -> Result<()> {
     // 确保目标目录存在
     if let Some(parent) = target.parent() {
-        std::fs::create_dir_all(parent)
-            .context("Failed to create target directory")?;
+        std::fs::create_dir_all(parent).context("Failed to create target directory")?;
     }
 
     // 移动文件
-    std::fs::rename(source, target)
-        .context("Failed to move file")?;
+    std::fs::rename(source, target).context("Failed to move file")?;
 
     Ok(())
 }

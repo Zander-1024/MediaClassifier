@@ -12,36 +12,10 @@ reorder_imports = true
 reorder_modules = true
 
 # 函数参数换行
-fn_args_layout = "Tall"
+fn_params_layout = "Tall"
 
 # 使用字段初始化简写
 use_field_init_shorthand = true
 
-# 格式化字符串
-format_strings = true
-
-# 格式化宏
-format_macro_matchers = true
-
-# 合并导入
-imports_granularity = "Crate"
-
-# 尾随逗号
-trailing_comma = "Vertical"
-
 # 匹配块尾随逗号
 match_block_trailing_comma = true
-
-# 空行
-blank_lines_upper_bound = 2
-blank_lines_lower_bound = 0
-
-# 注释宽度
-comment_width = 80
-wrap_comments = true
-
-# 文档注释
-normalize_doc_attributes = true
-
-# 格式化代码块
-format_code_in_doc_comments = true
