@@ -64,7 +64,7 @@ pub fn is_image_extension(ext: &str) -> bool {
 }
 
 /// 检查是否为视频文件扩展名
-fn is_video_extension(ext: &str) -> bool {
+pub fn is_video_extension(ext: &str) -> bool {
     matches!(
         ext,
         "mp4"
@@ -91,7 +91,7 @@ fn is_video_extension(ext: &str) -> bool {
 }
 
 /// 检查是否为音频文件扩展名
-fn is_audio_extension(ext: &str) -> bool {
+pub fn is_audio_extension(ext: &str) -> bool {
     matches!(
         ext,
         // 无损格式

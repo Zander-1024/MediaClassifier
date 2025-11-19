@@ -4,12 +4,27 @@ mod media_types;
 mod metadata;
 
 use anyhow::{Context, Result};
+use clap::Parser;
 use classifier::{ClassifyResult, classify_file};
 use log::{error, info};
 use simplelog::*;
 use std::fs::File;
 use std::path::PathBuf;
 use walkdir::WalkDir;
+
+use crate::media_types::{is_audio_extension, is_image_extension, is_video_extension};
+
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Directory to operate on (default: current directory)
+    #[arg(short, long, default_value = ".")]
+    dir: String,
+
+    /// Clean up files（default: true）
+    #[arg(short, long, default_value_t = true)]
+    clean: bool,
+}
 
 /// 统计信息
 #[derive(Debug, Default)]
@@ -56,20 +71,25 @@ impl Statistics {
 
 fn main() -> Result<()> {
     // 初始化日志系统
+    let args = Args::parse();
     init_logger()?;
 
     info!("MediaClassifier started");
     println!("🚀 MediaClassifier - Organizing your media files...\n");
 
-    // 获取当前目录
-    let current_dir = std::env::current_dir().context("Failed to get current directory")?;
+    // 获取目标目录
+    let target_dir = if args.dir.is_empty() {
+        std::env::current_dir().context("Failed to get current directory")?
+    } else {
+        PathBuf::from(&args.dir)
+    };
 
-    info!("Working directory: {:?}", current_dir);
-    println!("📁 Working directory: {}\n", current_dir.display());
+    info!("Working directory: {:?}", target_dir);
+    println!("📁 Working directory: {}\n", target_dir.display());
 
     // 扫描并收集所有媒体文件
     println!("🔍 Scanning for media files...");
-    let media_files = scan_media_files(&current_dir)?;
+    let media_files = scan_media_files(&target_dir)?;
 
     if media_files.is_empty() {
         println!("ℹ️  No media files found in the current directory.");
@@ -87,7 +107,7 @@ fn main() -> Result<()> {
     for (index, file) in media_files.iter().enumerate() {
         let progress = format!("[{}/{}]", index + 1, media_files.len());
 
-        match classify_file(file) {
+        match classify_file(&target_dir, file) {
             Ok(result) => {
                 match &result {
                     ClassifyResult::Success { from, to } => {
@@ -95,7 +115,7 @@ fn main() -> Result<()> {
                             "{} ✅ Moved: {} → {}",
                             progress,
                             from.file_name().unwrap().to_string_lossy(),
-                            to.strip_prefix(&current_dir).unwrap_or(to).display()
+                            to.strip_prefix(&target_dir).unwrap_or(to).display()
                         );
                     },
                     ClassifyResult::Renamed { from, to, .. } => {
@@ -103,7 +123,7 @@ fn main() -> Result<()> {
                             "{} 🔄 Renamed: {} → {}",
                             progress,
                             from.file_name().unwrap().to_string_lossy(),
-                            to.strip_prefix(&current_dir).unwrap_or(to).display()
+                            to.strip_prefix(&target_dir).unwrap_or(to).display()
                         );
                     },
                     ClassifyResult::Skipped { path, .. } => {
@@ -136,6 +156,10 @@ fn main() -> Result<()> {
             },
         }
     }
+    if args.clean {
+        println!("\n🧹 Cleaning up empty directories...\n");
+        clean_emtry_dirs(&target_dir)?;
+    }
 
     // 打印统计信息
     stats.print_summary();
@@ -164,7 +188,7 @@ fn scan_media_files(dir: &PathBuf) -> Result<Vec<PathBuf>> {
 
     for entry in WalkDir::new(dir)
         .min_depth(1) // 跳过根目录本身
-        .max_depth(3) // 限制递归深度，避免扫描太深
+        .max_depth(9) // 限制递归深度，避免扫描太深
         .into_iter()
         .filter_entry(|e| !is_hidden(e) && !is_target_dir(e))
     {
@@ -207,15 +231,43 @@ fn is_target_dir(entry: &walkdir::DirEntry) -> bool {
     if name == "target" {
         return true;
     }
+    let low_name = name.to_lowercase();
 
     // 跳过看起来像是分类目录的目录（全大写字母）
-    if name.len() <= 5
-        && name
-            .chars()
-            .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit())
+    if is_image_extension(&low_name)
+        || is_video_extension(&low_name)
+        || is_audio_extension(&low_name)
     {
         return true;
     }
 
     false
+}
+
+fn clean_emtry_dirs(dir: &PathBuf) -> Result<()> {
+    for entry in WalkDir::new(dir)
+        .min_depth(1)
+        .max_depth(9)
+        .into_iter()
+        .filter_entry(|e| !is_hidden(e))
+    {
+        let entry = entry.context("Failed to read directory entry")?;
+
+        if entry.file_type().is_dir() {
+            let path = entry.path();
+            let name = path.file_name().unwrap_or_default().to_string_lossy();
+            if name == "target" || name.to_lowercase() == "dcim" {
+                continue;
+            }
+
+            // 检查目录是否为空
+            if path.read_dir()?.next().is_none() {
+                std::fs::remove_dir(path).context("Failed to remove empty directory")?;
+                info!("Removed empty directory: {:?}", path);
+                println!("🗑️  Removed empty directory: {}", path.display());
+            }
+        }
+    }
+
+    Ok(())
 }

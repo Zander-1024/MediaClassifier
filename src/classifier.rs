@@ -21,7 +21,7 @@ pub enum ClassifyResult {
 }
 
 /// 分类单个文件
-pub fn classify_file(source: &Path) -> Result<ClassifyResult> {
+pub fn classify_file(target_dir: &Path, source: &Path) -> Result<ClassifyResult> {
     // 1. 获取媒体信息
     let media_info = match get_media_info(source) {
         Some(info) => info,
@@ -47,7 +47,7 @@ pub fn classify_file(source: &Path) -> Result<ClassifyResult> {
     };
 
     // 3. 构建目标路径
-    let target = build_target_path(source, &media_info, &date)?;
+    let target = build_target_path(target_dir, source, &media_info, &date)?;
 
     // 4. 检查是否是分类目录中的文件（避免重复处理）
     if is_classified_file(source) {
@@ -91,17 +91,16 @@ pub fn classify_file(source: &Path) -> Result<ClassifyResult> {
 
 /// 构建目标路径：类型/YYYYMMDD/文件名
 fn build_target_path(
+    target_dir: &Path,
     source: &Path,
     media_info: &MediaInfo,
     date: &DateTime<Local>,
 ) -> Result<PathBuf> {
-    let current_dir = std::env::current_dir().context("Failed to get current directory")?;
-
     let date_str = format_date(date);
     let filename = source.file_name().context("Failed to get filename")?;
 
     // 构建路径：当前目录/扩展名/日期/文件名
-    let target = current_dir
+    let target = target_dir
         .join(&media_info.extension)
         .join(date_str)
         .join(filename);
