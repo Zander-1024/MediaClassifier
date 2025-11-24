@@ -74,7 +74,7 @@ impl<'a> RuleMatcher<'a> {
             // 检查规则扩展名是否是某个别名的一部分
             // 例如：rule_ext = "jpg", aliases["JPG"] = ["jpg", "jpeg"]
             // 如果文件是 "jpeg"，应该也能匹配
-            for (_alias, alias_exts) in &self.config.extension_aliases {
+            for alias_exts in self.config.extension_aliases.values() {
                 if alias_exts
                     .iter()
                     .any(|a| a.to_lowercase() == rule_ext_lower)
