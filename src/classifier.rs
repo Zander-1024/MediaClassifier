@@ -1,11 +1,12 @@
 use anyhow::{Context, Result};
-use chrono::{DateTime, Local};
 use log::{error, info, warn};
 use std::path::{Path, PathBuf};
 
+use crate::config::Config;
 use crate::conflict::{ConflictResolution, resolve_conflict};
-use crate::media_types::{MediaInfo, MediaType, get_media_info};
-use crate::metadata::{extract_date, format_date};
+use crate::media_types::{MediaType, get_media_info};
+use crate::metadata::extract_date;
+use crate::rule_matcher::RuleMatcher;
 
 /// 文件分类结果
 #[derive(Debug)]
@@ -20,8 +21,14 @@ pub enum ClassifyResult {
     Failed { path: PathBuf, error: String },
 }
 
-/// 分类单个文件
-pub fn classify_file(target_dir: &Path, source: &Path) -> Result<ClassifyResult> {
+/// 分类单个文件（使用配置）
+pub fn classify_file_with_config(
+    config: &Config,
+    target_dir: &Path,
+    source: &Path,
+) -> Result<ClassifyResult> {
+    let matcher = RuleMatcher::new(config);
+
     // 1. 获取媒体信息
     let media_info = match get_media_info(source) {
         Some(info) => info,
@@ -33,30 +40,52 @@ pub fn classify_file(target_dir: &Path, source: &Path) -> Result<ClassifyResult>
         },
     };
 
-    // 2. 提取日期
-    let is_image = media_info.media_type == MediaType::Image;
-    let date = match extract_date(source, is_image) {
-        Ok(d) => d,
-        Err(e) => {
-            error!("Failed to extract date from {:?}: {}", source, e);
+    // 2. 获取文件大小
+    let file_size = std::fs::metadata(source)
+        .context("Failed to get file metadata")?
+        .len();
+
+    // 3. 匹配规则
+    let matched_rule = match matcher.match_file(&media_info.extension, file_size) {
+        Some(rule) => rule,
+        None => {
+            info!("No rule matched for {:?}", source);
             return Ok(ClassifyResult::Failed {
                 path: source.to_path_buf(),
-                error: format!("Failed to extract date: {}", e),
+                error: "No matching rule found".to_string(),
             });
         },
     };
 
-    // 3. 构建目标路径
-    let target = build_target_path(target_dir, source, &media_info, &date)?;
+    // 4. 提取日期（如果规则需要）
+    let date = if matched_rule.date_format.is_some() {
+        let is_image = media_info.media_type == MediaType::Image;
+        match extract_date(source, is_image) {
+            Ok(d) => Some(d),
+            Err(e) => {
+                error!("Failed to extract date from {:?}: {}", source, e);
+                return Ok(ClassifyResult::Failed {
+                    path: source.to_path_buf(),
+                    error: format!("Failed to extract date: {}", e),
+                });
+            },
+        }
+    } else {
+        None
+    };
 
-    // 4. 检查是否是分类目录中的文件（避免重复处理）
+    // 5. 构建目标路径
+    let target =
+        matcher.build_target_path(target_dir, source, &media_info, date.as_ref(), matched_rule)?;
+
+    // 6. 检查是否是分类目录中的文件（避免重复处理）
     if is_classified_file(source) {
         return Ok(ClassifyResult::Skipped {
             path: source.to_path_buf(),
         });
     }
 
-    // 5. 解决冲突
+    // 7. 解决冲突
     match resolve_conflict(source, &target)? {
         ConflictResolution::NoConflict(final_target) => {
             // 无冲突，直接移动
@@ -89,23 +118,12 @@ pub fn classify_file(target_dir: &Path, source: &Path) -> Result<ClassifyResult>
     }
 }
 
-/// 构建目标路径：类型/YYYYMMDD/文件名
-fn build_target_path(
-    target_dir: &Path,
-    source: &Path,
-    media_info: &MediaInfo,
-    date: &DateTime<Local>,
-) -> Result<PathBuf> {
-    let date_str = format_date(date);
-    let filename = source.file_name().context("Failed to get filename")?;
-
-    // 构建路径：当前目录/扩展名/日期/文件名
-    let target = target_dir
-        .join(&media_info.extension)
-        .join(date_str)
-        .join(filename);
-
-    Ok(target)
+/// 分类单个文件（向后兼容，使用默认配置）
+#[allow(dead_code)]
+pub fn classify_file(target_dir: &Path, source: &Path) -> Result<ClassifyResult> {
+    // 创建默认配置
+    let default_config = Config::default_config();
+    classify_file_with_config(&default_config, target_dir, source)
 }
 
 /// 检查文件是否已经在分类目录中

@@ -96,6 +96,7 @@ fn extract_file_date(path: &Path) -> Result<DateTime<Local>> {
 }
 
 /// 将日期格式化为 YYYYMMDD 格式
+#[allow(dead_code)]
 pub fn format_date(date: &DateTime<Local>) -> String {
     date.format("%Y%m%d").to_string()
 }

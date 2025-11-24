@@ -32,10 +32,3 @@ fn is_empty_dir<P: AsRef<Path>>(path: P) -> bool {
     }
 }
 
-pub fn is_hidden(entry: &walkdir::DirEntry) -> bool {
-    entry
-        .file_name()
-        .to_str()
-        .map(|s| s.starts_with('.'))
-        .unwrap_or(false)
-}

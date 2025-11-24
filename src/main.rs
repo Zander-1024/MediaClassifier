@@ -1,12 +1,19 @@
 mod classifier;
+mod config;
+mod config_display;
 mod conflict;
+mod filter;
 mod media_types;
 mod metadata;
+mod rule_matcher;
 mod utils;
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use classifier::{ClassifyResult, classify_file};
+use classifier::{ClassifyResult, classify_file_with_config};
+use config::Config;
+use config_display::show_config;
+use filter::FileFilter;
 use log::{error, info};
 use simplelog::*;
 use std::fs::File;
@@ -14,7 +21,7 @@ use std::path::PathBuf;
 use walkdir::WalkDir;
 
 use crate::media_types::is_media_extension;
-use crate::utils::{is_hidden, remove_empty_dirs};
+use crate::utils::remove_empty_dirs;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -23,9 +30,21 @@ struct Args {
     #[arg(short, long, default_value = ".")]
     dir: String,
 
-    /// Remove empty directories after processing (default: true)
-    #[arg(short, long, default_value_t = true)]
-    clean: bool,
+    /// Config file path (default: ~/.config/media-classifier/config.yaml)
+    #[arg(short = 'f', long = "file")]
+    config_file: Option<PathBuf>,
+
+    /// Interactive configuration mode
+    #[arg(short = 'c', long = "configure")]
+    configure: bool,
+
+    /// Show current configuration in table format
+    #[arg(short = 's', long = "show-config")]
+    show_config: bool,
+
+    /// Remove empty directories after processing (default: from config)
+    #[arg(long)]
+    clean: Option<bool>,
 }
 
 /// 统计信息
@@ -72,15 +91,48 @@ impl Statistics {
 }
 
 fn main() -> Result<()> {
-    // 初始化日志系统
     let args = Args::parse();
+
+    // 获取配置文件路径
+    let config_path = if let Some(path) = args.config_file {
+        path
+    } else {
+        Config::default_config_path()?
+    };
+
+    // 确保配置文件存在
+    Config::ensure_config_exists(&config_path)?;
+
+    // 加载配置
+    let config = Config::load(&config_path)?;
+
+    // 如果是显示配置模式
+    if args.show_config {
+        show_config(&config, &config_path.display().to_string());
+        return Ok(());
+    }
+
+    // 如果是配置模式
+    if args.configure {
+        println!("🔧 Interactive configuration mode is not yet implemented.");
+        println!(
+            "📝 Please edit the config file directly: {}",
+            config_path.display()
+        );
+        println!("\nYou can use -s/--show-config to view the current configuration.");
+        return Ok(());
+    }
+
+    // 初始化日志系统
     init_logger()?;
 
     info!("MediaClassifier started");
+    info!("Using config: {:?}", config_path);
     println!("🚀 MediaClassifier - Organizing your media files...\n");
+    println!("📋 Config: {}\n", config_path.display());
 
     // 获取目标目录
-    let target_dir = if args.dir.is_empty() {
+    let target_dir = if args.dir.is_empty() || args.dir == "." {
         std::env::current_dir().context("Failed to get current directory")?
     } else {
         PathBuf::from(&args.dir)
@@ -91,7 +143,7 @@ fn main() -> Result<()> {
 
     // 扫描并收集所有媒体文件
     println!("🔍 Scanning for media files...");
-    let media_files = scan_media_files(&target_dir)?;
+    let media_files = scan_media_files(&target_dir, &config)?;
 
     if media_files.is_empty() {
         println!("ℹ️  No media files found in the current directory.");
@@ -109,7 +161,7 @@ fn main() -> Result<()> {
     for (index, file) in media_files.iter().enumerate() {
         let progress = format!("[{}/{}]", index + 1, media_files.len());
 
-        match classify_file(&target_dir, file) {
+        match classify_file_with_config(&config, &target_dir, file) {
             Ok(result) => {
                 match &result {
                     ClassifyResult::Success { from, to } => {
@@ -158,7 +210,9 @@ fn main() -> Result<()> {
             },
         }
     }
-    if args.clean {
+    // 使用配置或命令行参数决定是否清理空目录
+    let should_clean = args.clean.unwrap_or(config.global.clean_empty_dirs);
+    if should_clean {
         println!("\n🧹 Cleaning up empty directories...\n");
         remove_empty_dirs(&target_dir)?;
     }
@@ -176,7 +230,7 @@ fn main() -> Result<()> {
 fn init_logger() -> Result<()> {
     CombinedLogger::init(vec![WriteLogger::new(
         LevelFilter::Info,
-        Config::default(),
+        simplelog::Config::default(),
         File::create("classifier.log").context("Failed to create log file")?,
     )])
     .context("Failed to initialize logger")?;
@@ -185,14 +239,15 @@ fn init_logger() -> Result<()> {
 }
 
 /// 扫描目录中的所有媒体文件
-fn scan_media_files(dir: &PathBuf) -> Result<Vec<PathBuf>> {
+fn scan_media_files(dir: &PathBuf, config: &Config) -> Result<Vec<PathBuf>> {
     let mut media_files = Vec::new();
+    let filter = FileFilter::new(&config.exclude);
 
     for entry in WalkDir::new(dir)
         .min_depth(1) // 跳过根目录本身
         .max_depth(9) // 限制递归深度，避免扫描太深
         .into_iter()
-        .filter_entry(|e| !is_hidden(e) && !is_media_name_dir(e))
+        .filter_entry(|e| !filter.should_exclude_entry(e) && !is_media_name_dir(e))
     {
         let entry = entry.context("Failed to read directory entry")?;
 
