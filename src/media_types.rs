@@ -103,6 +103,10 @@ pub fn is_audio_extension(ext: &str) -> bool {
     )
 }
 
+pub fn is_media_extension(ext: &str) -> bool {
+    is_image_extension(ext) || is_video_extension(ext) || is_audio_extension(ext)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
