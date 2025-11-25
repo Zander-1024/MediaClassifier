@@ -34,18 +34,29 @@ impl<'a> RuleMatcher<'a> {
                 continue;
             }
 
-            // 检查文件大小
-            let min = match FileSize::parse(&rule.file_size.min) {
-                Ok(size) => size,
-                Err(_) => continue, // 解析失败，跳过这个规则
-            };
-            let max = match FileSize::parse(&rule.file_size.max) {
-                Ok(size) => size,
-                Err(_) => continue, // 解析失败，跳过这个规则
-            };
+            // 检查文件大小（如果规则指定了文件大小限制）
+            if let Some(filter) = &rule.file_size {
+                let min = if let Some(min_str) = &filter.min {
+                    match FileSize::parse(min_str) {
+                        Ok(size) => size,
+                        Err(_) => continue, // 解析失败，跳过这个规则
+                    }
+                } else {
+                    FileSize { bytes: 0 }
+                };
 
-            if !file_size_obj.is_in_range(min, max) {
-                continue;
+                let max = if let Some(max_str) = &filter.max {
+                    match FileSize::parse(max_str) {
+                        Ok(size) => size,
+                        Err(_) => continue, // 解析失败，跳过这个规则
+                    }
+                } else {
+                    FileSize { bytes: 0 }
+                };
+
+                if !file_size_obj.is_in_range(min, max) {
+                    continue;
+                }
             }
 
             // 找到匹配的规则
