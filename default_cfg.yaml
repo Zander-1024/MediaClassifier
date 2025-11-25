@@ -24,7 +24,8 @@
 # 文件大小单位 (大小写敏感):
 #   B, KB, MB, GB, TB  - Byte 单位 (1KB = 1024B)
 #   b, Kb, Mb, Gb, Tb  - bit 单位 (1B = 8b)
-#   示例: "5MB", "100KB", "1.5GB", "0B" (0表示不限制)
+#   示例: "5MB", "100KB", "1.5GB"
+#   null 表示不限制
 #
 # ============================================================
 
@@ -41,107 +42,97 @@ global:
   # 处理完成后是否自动清理空目录
   clean_empty_dirs: true
   
-  # 全局文件大小过滤
-  file_size:
-    min: "0B"
-    max: "0B"
+  # 全局文件大小过滤 (可选，null 表示不限制)
+  file_size: null
 
 # ------------------------------------------------------------
 # 文件分类规则
 # ------------------------------------------------------------
-rules:
-  # 高质量照片
-  - name: "High Quality Photos"
-    description: "大尺寸照片按年月分类到 Photos 目录"
-    extensions:
-      - jpg
-      - jpeg
-      - png
-    file_size:
-      min: "5MB"
-      max: "0B"
-    directory_template: "Photos/{year}/{month}"
-    date_format: "YYYY/MM"
-    enabled: true
+# rules:
+#   # 高质量照片
+#   - name: "High Quality Photos"
+#     description: "大尺寸照片按年月分类到 Photos 目录"
+#     extensions:
+#       - jpg
+#       - jpeg
+#       - png
+#     file_size:
+#       min: "5MB"
+#       max: null  # null 表示不限制
+#     directory_template: "Photos/{year}/{month}"
+#     date_format: "YYYY/MM"
+#     enabled: true
 
-  # RAW 格式照片
-  - name: "RAW Photos"
-    description: "RAW 格式照片按年/月/日详细分类"
-    extensions:
-      - nef
-      - cr2
-      - cr3
-      - arw
-      - dng
-      - orf
-      - raf
-      - rw2
-    file_size:
-      min: "0B"
-      max: "0B"
-    directory_template: "RAW/{year}/{month}/{day}"
-    date_format: "YYYY/MM/DD"
-    enabled: true
+#   # RAW 格式照片
+#   - name: "RAW Photos"
+#     description: "RAW 格式照片按年/月/日详细分类"
+#     extensions:
+#       - nef
+#       - cr2
+#       - cr3
+#       - arw
+#       - dng
+#       - orf
+#       - raf
+#       - rw2
+#     file_size: null  # null 表示不限制文件大小
+#     directory_template: "RAW/{year}/{month}/{day}"
+#     date_format: "YYYY/MM/DD"
+#     enabled: true
 
-  # 缩略图
-  - name: "Thumbnails"
-    description: "小尺寸图片分类到 Thumbnails 目录"
-    extensions:
-      - jpg
-      - jpeg
-      - png
-    file_size:
-      min: "0B"
-      max: "5MB"
-    directory_template: "Thumbnails/{date}"
-    date_format: "YYYYMMDD"
-    enabled: true
+#   # 缩略图
+#   - name: "Thumbnails"
+#     description: "小尺寸图片分类到 Thumbnails 目录"
+#     extensions:
+#       - jpg
+#       - jpeg
+#       - png
+#     file_size:
+#       min: null  # null 表示不限制
+#       max: "5MB"
+#     directory_template: "Thumbnails/{date}"
+#     date_format: "YYYYMMDD"
+#     enabled: true
 
-  # 视频文件
-  - name: "Videos"
-    description: "视频文件按年份分类"
-    extensions:
-      - mp4
-      - mov
-      - avi
-      - mkv
-      - m4v
-      - wmv
-      - flv
-    file_size:
-      min: "0B"
-      max: "0B"
-    directory_template: "Videos/{year}"
-    date_format: "YYYY"
-    enabled: true
+#   # 视频文件
+#   - name: "Videos"
+#     description: "视频文件按年份分类"
+#     extensions:
+#       - mp4
+#       - mov
+#       - avi
+#       - mkv
+#       - m4v
+#       - wmv
+#       - flv
+#     file_size: null
+#     directory_template: "Videos/{year}"
+#     date_format: "YYYY"
+#     enabled: true
 
-  # 音频文件
-  - name: "Music"
-    description: "音乐文件按格式分类"
-    extensions:
-      - mp3
-      - flac
-      - wav
-      - aac
-      - m4a
-    file_size:
-      min: "0B"
-      max: "0B"
-    directory_template: "Music/{ext}"
-    date_format: null
-    enabled: true
+#   # 音频文件
+#   - name: "Music"
+#     description: "音乐文件按格式分类"
+#     extensions:
+#       - mp3
+#       - flac
+#       - wav
+#       - aac
+#       - m4a
+#     file_size: null
+#     directory_template: "Music/{ext}"
+#     date_format: null
+#     enabled: true
 
-  # 默认规则
-  - name: "Default"
-    description: "默认规则：扩展名/日期格式"
-    extensions:
-      - "*"
-    file_size:
-      min: "0B"
-      max: "0B"
-    directory_template: "{ext}/{date}"
-    date_format: "YYYYMMDD"
-    enabled: true
+#   # 默认规则
+#   - name: "Default"
+#     description: "默认规则：扩展名/日期格式"
+#     extensions:
+#       - "*"
+#     file_size: null
+#     directory_template: "{ext}/{date}"
+#     date_format: "YYYYMMDD"
+#     enabled: true
 
 # ------------------------------------------------------------
 # 扩展名别名

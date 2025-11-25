@@ -21,7 +21,8 @@ pub struct GlobalConfig {
     pub date_format: String,
     pub directory_template: String,
     pub clean_empty_dirs: bool,
-    pub file_size: FileSizeFilter,
+    #[serde(default)]
+    pub file_size: Option<FileSizeFilter>,
 }
 
 /// 文件分类规则
@@ -30,7 +31,8 @@ pub struct Rule {
     pub name: String,
     pub description: String,
     pub extensions: Vec<String>,
-    pub file_size: FileSizeFilter,
+    #[serde(default)]
+    pub file_size: Option<FileSizeFilter>,
     pub directory_template: String,
     pub date_format: Option<String>,
     pub enabled: bool,
@@ -39,10 +41,12 @@ pub struct Rule {
 /// 文件大小过滤器
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct FileSizeFilter {
-    /// 最小文件大小，如 "5MB", "100KB"
-    pub min: String,
-    /// 最大文件大小，如 "1GB"
-    pub max: String,
+    /// 最小文件大小，如 "5MB", "100KB"，null 表示不限制
+    #[serde(default)]
+    pub min: Option<String>,
+    /// 最大文件大小，如 "1GB"，null 表示不限制
+    #[serde(default)]
+    pub max: Option<String>,
 }
 
 /// 排除规则配置
@@ -177,20 +181,17 @@ impl Config {
                 date_format: "YYYYMMDD".to_string(),
                 directory_template: "{ext}/{date}".to_string(),
                 clean_empty_dirs: true,
-                file_size: FileSizeFilter {
-                    min: "0B".to_string(),
-                    max: "0B".to_string(),
-                },
+                file_size: None,
             },
             rules: vec![
                 Rule {
                     name: "High Quality Photos".to_string(),
                     description: "大尺寸照片按年月分类到 Photos 目录".to_string(),
                     extensions: vec!["jpg".to_string(), "jpeg".to_string(), "png".to_string()],
-                    file_size: FileSizeFilter {
-                        min: "5MB".to_string(),
-                        max: "0B".to_string(),
-                    },
+                    file_size: Some(FileSizeFilter {
+                        min: Some("5MB".to_string()),
+                        max: None,
+                    }),
                     directory_template: "Photos/{year}/{month}".to_string(),
                     date_format: Some("YYYY/MM".to_string()),
                     enabled: true,
@@ -208,10 +209,7 @@ impl Config {
                         "raf".to_string(),
                         "rw2".to_string(),
                     ],
-                    file_size: FileSizeFilter {
-                        min: "0B".to_string(),
-                        max: "0B".to_string(),
-                    },
+                    file_size: None,
                     directory_template: "RAW/{year}/{month}/{day}".to_string(),
                     date_format: Some("YYYY/MM/DD".to_string()),
                     enabled: true,
@@ -220,10 +218,10 @@ impl Config {
                     name: "Thumbnails".to_string(),
                     description: "小尺寸图片分类到 Thumbnails 目录".to_string(),
                     extensions: vec!["jpg".to_string(), "jpeg".to_string(), "png".to_string()],
-                    file_size: FileSizeFilter {
-                        min: "0B".to_string(),
-                        max: "5MB".to_string(),
-                    },
+                    file_size: Some(FileSizeFilter {
+                        min: None,
+                        max: Some("5MB".to_string()),
+                    }),
                     directory_template: "Thumbnails/{date}".to_string(),
                     date_format: Some("YYYYMMDD".to_string()),
                     enabled: true,
@@ -240,10 +238,7 @@ impl Config {
                         "wmv".to_string(),
                         "flv".to_string(),
                     ],
-                    file_size: FileSizeFilter {
-                        min: "0B".to_string(),
-                        max: "0B".to_string(),
-                    },
+                    file_size: None,
                     directory_template: "Videos/{year}".to_string(),
                     date_format: Some("YYYY".to_string()),
                     enabled: true,
@@ -258,10 +253,7 @@ impl Config {
                         "aac".to_string(),
                         "m4a".to_string(),
                     ],
-                    file_size: FileSizeFilter {
-                        min: "0B".to_string(),
-                        max: "0B".to_string(),
-                    },
+                    file_size: None,
                     directory_template: "Music/{ext}".to_string(),
                     date_format: None,
                     enabled: true,
@@ -270,10 +262,7 @@ impl Config {
                     name: "Default".to_string(),
                     description: "默认规则：扩展名/日期格式".to_string(),
                     extensions: vec!["*".to_string()],
-                    file_size: FileSizeFilter {
-                        min: "0B".to_string(),
-                        max: "0B".to_string(),
-                    },
+                    file_size: None,
                     directory_template: "{ext}/{date}".to_string(),
                     date_format: Some("YYYYMMDD".to_string()),
                     enabled: true,

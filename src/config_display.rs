@@ -45,8 +45,22 @@ fn show_global_settings(config: &Config) {
             "false"
         },
     ]);
-    table.add_row(vec!["Min File Size (Global)", &config.global.file_size.min]);
-    table.add_row(vec!["Max File Size (Global)", &config.global.file_size.max]);
+
+    // 全局文件大小过滤（可选）
+    if let Some(file_size) = &config.global.file_size {
+        let min = file_size.min.as_deref().unwrap_or("∞");
+        let max = file_size.max.as_deref().unwrap_or("∞");
+        table.add_row(vec![
+            "Min File Size (Global)",
+            &format_size_for_display_str(min),
+        ]);
+        table.add_row(vec![
+            "Max File Size (Global)",
+            &format_size_for_display_str(max),
+        ]);
+    } else {
+        table.add_row(vec!["File Size Filter (Global)", "None"]);
+    }
 
     println!("Global Settings:");
     println!("{table}\n");
@@ -80,8 +94,21 @@ fn show_rules(config: &Config) {
             rule.extensions.join(",")
         };
 
-        let min_size = format_size_for_display(&rule.file_size.min);
-        let max_size = format_size_for_display(&rule.file_size.max);
+        let (min_size, max_size) = if let Some(filter) = &rule.file_size {
+            let min = filter
+                .min
+                .as_ref()
+                .map(|s| format_size_for_display_str(s))
+                .unwrap_or_else(|| "∞".to_string());
+            let max = filter
+                .max
+                .as_ref()
+                .map(|s| format_size_for_display_str(s))
+                .unwrap_or_else(|| "∞".to_string());
+            (min, max)
+        } else {
+            ("∞".to_string(), "∞".to_string())
+        };
 
         let enabled_symbol = if rule.enabled { "✓" } else { "✗" };
         let enabled_cell = if rule.enabled {
@@ -160,7 +187,7 @@ fn show_exclude_rules(config: &Config) {
     println!("{table}\n");
 }
 
-fn format_size_for_display(size_str: &str) -> String {
+fn format_size_for_display_str(size_str: &str) -> String {
     match FileSize::parse(size_str) {
         Ok(size) if size.bytes == 0 => "∞".to_string(),
         Ok(size) => size.format(),

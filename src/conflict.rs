@@ -24,6 +24,14 @@ pub fn resolve_conflict(source: &Path, target: &Path) -> Result<ConflictResoluti
         return Ok(ConflictResolution::NoConflict(target.to_path_buf()));
     }
 
+    // 比较路径是否相同
+    if source.canonicalize()? == target.canonicalize()? {
+        // 路径相同，跳过
+        let reason = format!("Source and target are the same file: {:?}", target);
+        debug!("{}", reason);
+        return Ok(ConflictResolution::Skip(reason));
+    }
+
     // 比较文件大小
     let source_size = std::fs::metadata(source)
         .context("Failed to get source file metadata")?

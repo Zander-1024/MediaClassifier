@@ -31,4 +31,3 @@ fn is_empty_dir<P: AsRef<Path>>(path: P) -> bool {
         Err(_) => false,
     }
 }
-

@@ -20,7 +20,6 @@ use std::fs::File;
 use std::path::PathBuf;
 use walkdir::WalkDir;
 
-use crate::media_types::is_media_extension;
 use crate::utils::remove_empty_dirs;
 
 #[derive(Parser)]
@@ -247,7 +246,7 @@ fn scan_media_files(dir: &PathBuf, config: &Config) -> Result<Vec<PathBuf>> {
         .min_depth(1) // 跳过根目录本身
         .max_depth(9) // 限制递归深度，避免扫描太深
         .into_iter()
-        .filter_entry(|e| !filter.should_exclude_entry(e) && !is_media_name_dir(e))
+        .filter_entry(|e| !filter.should_exclude_entry(e))
     {
         let entry = entry.context("Failed to read directory entry")?;
 
@@ -265,17 +264,4 @@ fn scan_media_files(dir: &PathBuf, config: &Config) -> Result<Vec<PathBuf>> {
     }
 
     Ok(media_files)
-}
-
-/// 检查是否为应该跳过的目录
-fn is_media_name_dir(entry: &walkdir::DirEntry) -> bool {
-    if !entry.file_type().is_dir() {
-        return false;
-    }
-
-    let name = entry.file_name().to_string_lossy();
-
-    let low_name = name.to_lowercase();
-
-    is_media_extension(&low_name)
 }

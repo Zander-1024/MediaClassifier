@@ -78,14 +78,7 @@ pub fn classify_file_with_config(
     let target =
         matcher.build_target_path(target_dir, source, &media_info, date.as_ref(), matched_rule)?;
 
-    // 6. 检查是否是分类目录中的文件（避免重复处理）
-    if is_classified_file(source) {
-        return Ok(ClassifyResult::Skipped {
-            path: source.to_path_buf(),
-        });
-    }
-
-    // 7. 解决冲突
+    // 6. 解决冲突
     match resolve_conflict(source, &target)? {
         ConflictResolution::NoConflict(final_target) => {
             // 无冲突，直接移动
@@ -126,32 +119,6 @@ pub fn classify_file(target_dir: &Path, source: &Path) -> Result<ClassifyResult>
     classify_file_with_config(&default_config, target_dir, source)
 }
 
-/// 检查文件是否已经在分类目录中
-/// 分类目录的特征：路径中包含 扩展名/日期/ 的模式
-fn is_classified_file(path: &Path) -> bool {
-    if let Some(parent) = path.parent()
-        && let Some(date_dir) = parent.file_name()
-    {
-        // 检查父目录名是否是日期格式（8位数字）
-        let date_str = date_dir.to_string_lossy();
-        if date_str.len() == 8 && date_str.chars().all(|c| c.is_ascii_digit()) {
-            // 检查祖父目录是否是扩展名（全大写字母）
-            if let Some(grandparent) = parent.parent()
-                && let Some(ext_dir) = grandparent.file_name()
-            {
-                let ext_str = ext_dir.to_string_lossy();
-                if ext_str
-                    .chars()
-                    .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit())
-                {
-                    return true;
-                }
-            }
-        }
-    }
-    false
-}
-
 /// 移动文件到目标位置
 fn move_file(source: &Path, target: &Path) -> Result<()> {
     // 确保目标目录存在
@@ -163,21 +130,4 @@ fn move_file(source: &Path, target: &Path) -> Result<()> {
     std::fs::rename(source, target).context("Failed to move file")?;
 
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_is_classified_file() {
-        let path1 = Path::new("/home/user/JPG/20251118/photo.jpg");
-        assert!(is_classified_file(path1));
-
-        let path2 = Path::new("/home/user/photos/photo.jpg");
-        assert!(!is_classified_file(path2));
-
-        let path3 = Path::new("/home/user/NEF/20251115/DSC_1234.NEF");
-        assert!(is_classified_file(path3));
-    }
 }
