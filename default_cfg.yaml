@@ -48,91 +48,91 @@ global:
 # ------------------------------------------------------------
 # 文件分类规则
 # ------------------------------------------------------------
-# rules:
-#   # 高质量照片
-#   - name: "High Quality Photos"
-#     description: "大尺寸照片按年月分类到 Photos 目录"
-#     extensions:
-#       - jpg
-#       - jpeg
-#       - png
-#     file_size:
-#       min: "5MB"
-#       max: null  # null 表示不限制
-#     directory_template: "Photos/{year}/{month}"
-#     date_format: "YYYY/MM"
-#     enabled: true
+rules:
+  # 高质量照片
+  - name: "High Quality Photos"
+    description: "大尺寸照片按年月分类到 Photos 目录"
+    extensions:
+      - jpg
+      - jpeg
+      - png
+    file_size:
+      min: "1MB"
+      max: null  # null 表示不限制
+    directory_template: "Photos/{year}/{month}{day}"
+    date_format: "YYYY/MMDD"
+    enabled: true
 
-#   # RAW 格式照片
-#   - name: "RAW Photos"
-#     description: "RAW 格式照片按年/月/日详细分类"
-#     extensions:
-#       - nef
-#       - cr2
-#       - cr3
-#       - arw
-#       - dng
-#       - orf
-#       - raf
-#       - rw2
-#     file_size: null  # null 表示不限制文件大小
-#     directory_template: "RAW/{year}/{month}/{day}"
-#     date_format: "YYYY/MM/DD"
-#     enabled: true
+  # RAW 格式照片
+  - name: "RAW Photos"
+    description: "RAW 格式照片按年/月/日详细分类"
+    extensions:
+      - nef
+      - cr2
+      - cr3
+      - arw
+      - dng
+      - orf
+      - raf
+      - rw2
+    file_size: null  # null 表示不限制文件大小
+    directory_template: "RAW/{year}/{month}/{day}"
+    date_format: "YYYY/MM/DD"
+    enabled: true
 
-#   # 缩略图
-#   - name: "Thumbnails"
-#     description: "小尺寸图片分类到 Thumbnails 目录"
-#     extensions:
-#       - jpg
-#       - jpeg
-#       - png
-#     file_size:
-#       min: null  # null 表示不限制
-#       max: "5MB"
-#     directory_template: "Thumbnails/{date}"
-#     date_format: "YYYYMMDD"
-#     enabled: true
+  # 缩略图
+  - name: "Thumbnails"
+    description: "小尺寸图片分类到 Thumbnails 目录"
+    extensions:
+      - jpg
+      - jpeg
+      - png
+    file_size:
+      min: null  # null 表示不限制
+      max: "1MB"
+    directory_template: "Thumbnails/{date}"
+    date_format: "YYYYMM"
+    enabled: true
 
-#   # 视频文件
-#   - name: "Videos"
-#     description: "视频文件按年份分类"
-#     extensions:
-#       - mp4
-#       - mov
-#       - avi
-#       - mkv
-#       - m4v
-#       - wmv
-#       - flv
-#     file_size: null
-#     directory_template: "Videos/{year}"
-#     date_format: "YYYY"
-#     enabled: true
+  # 视频文件
+  - name: "Videos"
+    description: "视频文件按年份分类"
+    extensions:
+      - mp4
+      - mov
+      - avi
+      - mkv
+      - m4v
+      - wmv
+      - flv
+    file_size: null
+    directory_template: "Videos/{year}"
+    date_format: "YYYY"
+    enabled: true
 
-#   # 音频文件
-#   - name: "Music"
-#     description: "音乐文件按格式分类"
-#     extensions:
-#       - mp3
-#       - flac
-#       - wav
-#       - aac
-#       - m4a
-#     file_size: null
-#     directory_template: "Music/{ext}"
-#     date_format: null
-#     enabled: true
+  # 音频文件
+  - name: "Music"
+    description: "音乐文件按格式分类"
+    extensions:
+      - mp3
+      - flac
+      - wav
+      - aac
+      - m4a
+    file_size: null
+    directory_template: "Music/{ext}"
+    date_format: null
+    enabled: true
 
-#   # 默认规则
-#   - name: "Default"
-#     description: "默认规则：扩展名/日期格式"
-#     extensions:
-#       - "*"
-#     file_size: null
-#     directory_template: "{ext}/{date}"
-#     date_format: "YYYYMMDD"
-#     enabled: true
+  # 全局默认规则（用于已知媒体类型但未特别配置的文件）
+  - name: "Default Global"
+    description: "已知媒体类型的默认分类规则"
+    extensions: []  # 空列表表示不直接匹配，只作为后备
+    file_size: null
+    directory_template: "{ext}/{date}"
+    date_format: "YYYYMMDD"
+    enabled: true
+
 
 # ------------------------------------------------------------
 # 扩展名别名
