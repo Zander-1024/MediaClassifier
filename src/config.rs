@@ -259,9 +259,9 @@ impl Config {
                     enabled: true,
                 },
                 Rule {
-                    name: "Default".to_string(),
-                    description: "默认规则：扩展名/日期格式".to_string(),
-                    extensions: vec!["*".to_string()],
+                    name: "Default Global".to_string(),
+                    description: "已知媒体类型的默认分类规则".to_string(),
+                    extensions: vec![],
                     file_size: None,
                     directory_template: "{ext}/{date}".to_string(),
                     date_format: Some("YYYYMMDD".to_string()),
