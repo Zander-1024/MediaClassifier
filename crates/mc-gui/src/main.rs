@@ -3,6 +3,8 @@
 //! 使用 Slint 构建的媒体文件分类工具图形界面
 //! 支持 i18n、主题切换、多页面导航
 
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -15,7 +17,7 @@ slint::include_modules!();
 /// 中文 i18n 字符串
 fn get_zh_strings() -> I18nStrings {
     I18nStrings {
-        app_title: "🎬 MediaClassifier".into(),
+        app_title: "🎬 媒体文件分类器".into(),
         working_directory: "工作目录".into(),
         select_directory: "选择工作目录".into(),
         start_working: "开始工作".into(),
@@ -34,6 +36,7 @@ fn get_zh_strings() -> I18nStrings {
         stats_close: "关闭".into(),
         config_title: "⚙️ 配置管理".into(),
         config_add: "➕ 新增规则".into(),
+        config_exclude: "🚫 屏蔽文件夹".into(),
         config_back: "← 返回主页".into(),
         config_rule_name: "规则名称".into(),
         config_rule_desc: "规则描述".into(),
@@ -42,15 +45,27 @@ fn get_zh_strings() -> I18nStrings {
         config_rule_min_size: "最小大小".into(),
         config_rule_max_size: "最大大小".into(),
         config_rule_enabled: "启用".into(),
+        config_edit: "编辑".into(),
+        config_delete: "删除".into(),
         config_save: "保存".into(),
         config_cancel: "取消".into(),
-        nav_config: "⚙️ 配置".into(),
-        nav_main: "🏠 主页".into(),
+        nav_config: "⚙️".into(),
+        nav_main: "🏠".into(),
         theme_auto: "自动".into(),
         theme_light: "浅色".into(),
         theme_dark: "深色".into(),
         lang_zh: "中文".into(),
         lang_en: "EN".into(),
+        placeholder_select_folder: "点击选择文件夹...".into(),
+        placeholder_ext_example: "jpg,png,gif".into(),
+        placeholder_template_example: "{ext}/{date}".into(),
+        placeholder_min_size: "0B".into(),
+        placeholder_max_size: "无限制".into(),
+        status_processing: "⏳ 处理中...".into(),
+        exclude_title: "🚫 屏蔽文件夹管理".into(),
+        exclude_add: "添加".into(),
+        exclude_add_folder: "+ 添加文件夹".into(),
+        exclude_placeholder: "输入文件夹名称（如：.git, node_modules）".into(),
     }
 }
 
@@ -76,6 +91,7 @@ fn get_en_strings() -> I18nStrings {
         stats_close: "Close".into(),
         config_title: "⚙️ Configuration".into(),
         config_add: "➕ Add Rule".into(),
+        config_exclude: "🚫 Exclude Folders".into(),
         config_back: "← Back".into(),
         config_rule_name: "Name".into(),
         config_rule_desc: "Description".into(),
@@ -84,15 +100,27 @@ fn get_en_strings() -> I18nStrings {
         config_rule_min_size: "Min Size".into(),
         config_rule_max_size: "Max Size".into(),
         config_rule_enabled: "Enabled".into(),
+        config_edit: "Edit".into(),
+        config_delete: "Delete".into(),
         config_save: "Save".into(),
         config_cancel: "Cancel".into(),
-        nav_config: "⚙️ Config".into(),
-        nav_main: "🏠 Home".into(),
+        nav_config: "⚙️".into(),
+        nav_main: "🏠".into(),
         theme_auto: "Auto".into(),
         theme_light: "Light".into(),
         theme_dark: "Dark".into(),
         lang_zh: "中文".into(),
         lang_en: "EN".into(),
+        placeholder_select_folder: "Click to select folder...".into(),
+        placeholder_ext_example: "jpg,png,gif".into(),
+        placeholder_template_example: "{ext}/{date}".into(),
+        placeholder_min_size: "0B".into(),
+        placeholder_max_size: "Unlimited".into(),
+        status_processing: "⏳ Processing...".into(),
+        exclude_title: "🚫 Manage Exclude Folders".into(),
+        exclude_add: "Add".into(),
+        exclude_add_folder: "+ Add Folder".into(),
+        exclude_placeholder: "Enter folder name (e.g., .git, node_modules)".into(),
     }
 }
 
@@ -386,6 +414,8 @@ fn main() -> anyhow::Result<()> {
     main_window.on_add_rule(move || {
         if let Some(window) = main_window_weak.upgrade() {
             // 重置表单
+            window.set_is_editing_rule(false);
+            window.set_editing_rule_id(-1);
             window.set_new_rule_name("".into());
             window.set_new_rule_desc("".into());
             window.set_new_rule_ext("".into());
@@ -394,6 +424,42 @@ fn main() -> anyhow::Result<()> {
             window.set_new_rule_max_size("".into());
             window.set_new_rule_enabled(true);
             window.set_show_add_rule_popup(true);
+        }
+    });
+
+    // ========================================================================
+    // 编辑规则
+    // ========================================================================
+    let main_window_weak = main_window.as_weak();
+    let config_clone = config.clone();
+    main_window.on_edit_rule(move |rule_id| {
+        if let Some(window) = main_window_weak.upgrade() {
+            let config_guard = config_clone.lock().unwrap();
+            
+            if let Some(rule) = config_guard.rules.get(rule_id as usize) {
+                window.set_is_editing_rule(true);
+                window.set_editing_rule_id(rule_id);
+                window.set_new_rule_name(rule.name.clone().into());
+                window.set_new_rule_desc(rule.description.clone().into());
+                window.set_new_rule_ext(rule.extensions.join(",").into());
+                window.set_new_rule_template(rule.directory_template.clone().into());
+                window.set_new_rule_min_size(
+                    rule.file_size
+                        .as_ref()
+                        .and_then(|f| f.min.clone())
+                        .unwrap_or_default()
+                        .into(),
+                );
+                window.set_new_rule_max_size(
+                    rule.file_size
+                        .as_ref()
+                        .and_then(|f| f.max.clone())
+                        .unwrap_or_default()
+                        .into(),
+                );
+                window.set_new_rule_enabled(rule.enabled);
+                window.set_show_add_rule_popup(true);
+            }
         }
     });
 
@@ -411,6 +477,8 @@ fn main() -> anyhow::Result<()> {
             let min_size = window.get_new_rule_min_size().to_string();
             let max_size = window.get_new_rule_max_size().to_string();
             let enabled = window.get_new_rule_enabled();
+            let is_editing = window.get_is_editing_rule();
+            let editing_id = window.get_editing_rule_id();
 
             // 创建新规则
             let extensions: Vec<String> = ext
@@ -446,10 +514,18 @@ fn main() -> anyhow::Result<()> {
                 enabled,
             };
 
-            // 添加到配置并保存
+            // 添加或更新配置并保存
             {
                 let mut config_guard = config_clone.lock().unwrap();
-                config_guard.rules.push(new_rule);
+                
+                if is_editing && editing_id >= 0 && (editing_id as usize) < config_guard.rules.len() {
+                    // 更新现有规则
+                    config_guard.rules[editing_id as usize] = new_rule;
+                } else {
+                    // 添加新规则
+                    config_guard.rules.push(new_rule);
+                }
+                
                 save_config(&config_guard).ok();
 
                 // 更新 UI
@@ -500,7 +576,6 @@ fn main() -> anyhow::Result<()> {
     main_window.on_change_theme(move |theme| {
         if let Some(window) = main_window_weak.upgrade() {
             window.set_theme_mode(theme);
-            // Slint 会自动根据系统主题调整 Palette
         }
     });
 
@@ -515,6 +590,96 @@ fn main() -> anyhow::Result<()> {
                 window.set_i18n(get_en_strings());
             } else {
                 window.set_i18n(get_zh_strings());
+            }
+        }
+    });
+
+    // ========================================================================
+    // 管理屏蔽文件夹
+    // ========================================================================
+    let main_window_weak = main_window.as_weak();
+    let config_clone = config.clone();
+    main_window.on_manage_exclude_folders(move || {
+        if let Some(window) = main_window_weak.upgrade() {
+            // 从配置加载屏蔽文件夹列表
+            let exclude_list: Vec<slint::SharedString> = config_clone
+                .lock()
+                .unwrap()
+                .exclude
+                .directories
+                .iter()
+                .map(|s| s.clone().into())
+                .collect();
+            
+            let model = std::rc::Rc::new(slint::VecModel::from(exclude_list));
+            window.set_exclude_folders(model.into());
+            window.set_show_exclude_popup(true);
+        }
+    });
+
+    // 添加屏蔽文件夹
+    let main_window_weak = main_window.as_weak();
+    let config_clone = config.clone();
+    main_window.on_add_exclude_folder(move || {
+        if let Some(window) = main_window_weak.upgrade() {
+            let folder = window.get_new_exclude_folder().to_string().trim().to_string();
+            if !folder.is_empty() {
+                // 添加到配置
+                let mut cfg = config_clone.lock().unwrap();
+                if !cfg.exclude.directories.contains(&folder) {
+                    cfg.exclude.directories.push(folder.clone());
+                    let _ = save_config(&cfg);
+                    
+                    // 更新UI列表
+                    let exclude_list: Vec<slint::SharedString> = cfg
+                        .exclude
+                        .directories
+                        .iter()
+                        .map(|s| s.clone().into())
+                        .collect();
+                    
+                    let model = std::rc::Rc::new(slint::VecModel::from(exclude_list));
+                    window.set_exclude_folders(model.into());
+                    window.set_new_exclude_folder("".into());
+                }
+            }
+        }
+    });
+
+    // 删除屏蔽文件夹
+    let main_window_weak = main_window.as_weak();
+    let config_clone = config.clone();
+    main_window.on_remove_exclude_folder(move |index| {
+        if let Some(window) = main_window_weak.upgrade() {
+            let mut cfg = config_clone.lock().unwrap();
+            if (index as usize) < cfg.exclude.directories.len() {
+                cfg.exclude.directories.remove(index as usize);
+                let _ = save_config(&cfg);
+                
+                // 更新UI列表
+                let exclude_list: Vec<slint::SharedString> = cfg
+                    .exclude
+                    .directories
+                    .iter()
+                    .map(|s| s.clone().into())
+                    .collect();
+                
+                let model = std::rc::Rc::new(slint::VecModel::from(exclude_list));
+                window.set_exclude_folders(model.into());
+            }
+        }
+    });
+
+    // 浏览选择屏蔽文件夹
+    let main_window_weak = main_window.as_weak();
+    main_window.on_browse_exclude_folder(move || {
+        if let Some(window) = main_window_weak.upgrade() {
+            if let Some(folder) = rfd::FileDialog::new().pick_folder() {
+                if let Some(folder_name) = folder.file_name() {
+                    window.set_new_exclude_folder(
+                        folder_name.to_string_lossy().to_string().into()
+                    );
+                }
             }
         }
     });
