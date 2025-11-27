@@ -1,0 +1,21 @@
+[package]
+name = "mc-cli"
+description = "Command-line interface for MediaClassifier"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "MediaClassifier"
+path = "src/main.rs"
+
+[dependencies]
+mc-lib.workspace = true
+walkdir.workspace = true
+chrono.workspace = true
+log.workspace = true
+simplelog.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+comfy-table.workspace = true

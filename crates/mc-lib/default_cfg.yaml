@@ -1,0 +1,169 @@
+# ============================================================
+# MediaClassifier 配置文件
+# 版本: 1.0
+# ============================================================
+# 
+# 此文件用于自定义媒体文件的分类规则和目录组织方式
+#
+# 支持的模板变量:
+#   {type}   - 媒体类型 (Image/Video/Audio)
+#   {ext}    - 文件扩展名，大写 (JPG, MP4, MP3 等)
+#   {year}   - 年份，4位数字 (2025)
+#   {month}  - 月份，2位数字 (01-12)
+#   {day}    - 日期，2位数字 (01-31)
+#   {date}   - 根据 date_format 格式化的日期字符串
+#
+# 日期格式选项:
+#   YYYY     - 仅年份 (2025)
+#   YYYYMM   - 年月 (202511)
+#   YYYYMMDD - 年月日 (20251118)
+#   YYYY/MM  - 年/月 (2025/11)
+#   YYYY/MM/DD - 年/月/日 (2025/11/18)
+#   或其他自定义格式
+#
+# 文件大小单位 (大小写敏感):
+#   B, KB, MB, GB, TB  - Byte 单位 (1KB = 1024B)
+#   b, Kb, Mb, Gb, Tb  - bit 单位 (1B = 8b)
+#   示例: "5MB", "100KB", "1.5GB"
+#   null 表示不限制
+#
+# ============================================================
+
+# ------------------------------------------------------------
+# 全局默认设置
+# ------------------------------------------------------------
+global:
+  # 默认日期格式 (可在单个规则中覆盖)
+  date_format: "YYYYMMDD"
+  
+  # 默认目录结构模板
+  directory_template: "{ext}/{date}"
+  
+  # 处理完成后是否自动清理空目录
+  clean_empty_dirs: true
+  
+  # 全局文件大小过滤 (可选，null 表示不限制)
+  file_size: null
+
+# ------------------------------------------------------------
+# 文件分类规则
+# ------------------------------------------------------------
+rules:
+  # 高质量照片
+  - name: "High Quality Photos"
+    description: "大尺寸照片按年月分类到 Photos 目录"
+    extensions:
+      - jpg
+      - jpeg
+      - png
+    file_size:
+      min: "1MB"
+      max: null  # null 表示不限制
+    directory_template: "Photos/{year}/{month}{day}"
+    date_format: "YYYY/MMDD"
+    enabled: true
+
+  # RAW 格式照片
+  - name: "RAW Photos"
+    description: "RAW 格式照片按年/月/日详细分类"
+    extensions:
+      - nef
+      - cr2
+      - cr3
+      - arw
+      - dng
+      - orf
+      - raf
+      - rw2
+    file_size: null  # null 表示不限制文件大小
+    directory_template: "RAW/{year}/{month}/{day}"
+    date_format: "YYYY/MM/DD"
+    enabled: true
+
+  # 缩略图
+  - name: "Thumbnails"
+    description: "小尺寸图片分类到 Thumbnails 目录"
+    extensions:
+      - jpg
+      - jpeg
+      - png
+    file_size:
+      min: null  # null 表示不限制
+      max: "1MB"
+    directory_template: "Thumbnails/{date}"
+    date_format: "YYYYMM"
+    enabled: true
+
+  # 视频文件
+  - name: "Videos"
+    description: "视频文件按年份分类"
+    extensions:
+      - mp4
+      - mov
+      - avi
+      - mkv
+      - m4v
+      - wmv
+      - flv
+    file_size: null
+    directory_template: "Videos/{year}"
+    date_format: "YYYY"
+    enabled: true
+
+  # 音频文件
+  - name: "Music"
+    description: "音乐文件按格式分类"
+    extensions:
+      - mp3
+      - flac
+      - wav
+      - aac
+      - m4a
+    file_size: null
+    directory_template: "Music/{ext}"
+    date_format: null
+    enabled: true
+
+  # 全局默认规则（用于已知媒体类型但未特别配置的文件）
+  - name: "Default Global"
+    description: "已知媒体类型的默认分类规则"
+    extensions: []  # 空列表表示不直接匹配，只作为后备
+    file_size: null
+    directory_template: "{ext}/{date}"
+    date_format: "YYYYMMDD"
+    enabled: true
+
+
+# ------------------------------------------------------------
+# 扩展名别名
+# ------------------------------------------------------------
+extension_aliases:
+  JPG:
+    - jpg
+    - jpeg
+  TIFF:
+    - tif
+    - tiff
+  MPEG:
+    - mpg
+    - mpeg
+    - mpe
+
+# ------------------------------------------------------------
+# 排除规则
+# ------------------------------------------------------------
+exclude:
+  hidden_files: true
+  directories:
+    - ".git"
+    - ".svn"
+    - "node_modules"
+    - "target"
+    - "__pycache__"
+  patterns:
+    - "*.tmp"
+    - "*.bak"
+    - "*.swp"
+    - "desktop.ini"
+    - "Thumbs.db"
+    - ".DS_Store"

@@ -361,12 +361,38 @@ MediaClassifier -f ~/configs/music.yaml -d ~/Music
 - **serde + serde_yaml_bw**：配置文件解析 (使用活跃维护的 YAML 库)
 - **comfy-table**：表格显示
 - **clap**：命令行参数解析
+- **slint**：GUI 界面框架
+
+## 项目结构
+
+项目采用 Rust Workspace 结构，分为以下模块：
+
+```
+MediaClassifier/
+├── Cargo.toml              # Workspace 配置
+├── crates/
+│   ├── mc-lib/             # 核心功能库
+│   │   └── src/            # 分类、配置、规则匹配等核心模块
+│   ├── mc-cli/             # 命令行界面
+│   │   └── src/            # CLI 入口和显示
+│   └── mc-gui/             # 图形界面（使用 Slint）
+│       ├── src/            # GUI 入口
+│       └── ui/             # Slint UI 文件
+└── default_cfg.yaml        # 默认配置文件
+```
 
 ## 开发
 
 ### 构建
 ```bash
+# 构建所有模块
 cargo build
+
+# 仅构建 CLI
+cargo build -p mc-cli
+
+# 仅构建 GUI
+cargo build -p mc-gui
 ```
 
 ### 运行测试
@@ -376,7 +402,11 @@ cargo test
 
 ### 调试模式
 ```bash
-cargo run
+# 运行 CLI
+cargo run -p mc-cli
+
+# 运行 GUI
+cargo run -p mc-gui
 ```
 
 ### 发布构建
@@ -431,6 +461,12 @@ A: 程序使用移动操作，文件仍在同一磁盘上。查看 `classifier.l
 A: 程序会自动回退到使用文件的创建时间或修改时间。
 
 ## 更新日志
+
+### v1.3.0 (开发中)
+- 🏗️ 重构项目结构为 Workspace 模式
+- 📦 将核心功能整理到 `mc-lib` 库
+- 🖥️ 新增 GUI 界面支持（使用 Slint 框架）
+- 🔧 保留原有 CLI 功能
 
 ### v1.2.0 (2025-11-24)
 - ✨ 新增 YAML 配置文件支持

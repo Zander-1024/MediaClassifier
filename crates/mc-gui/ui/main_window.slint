@@ -1,0 +1,275 @@
+// MediaClassifier GUI - Main Window
+// 使用 Slint 构建的媒体文件分类工具图形界面
+
+import { Button, LineEdit, ListView, StandardListView, VerticalBox, HorizontalBox, GroupBox, CheckBox, ProgressIndicator, ComboBox, Palette } from "std-widgets.slint";
+
+// 媒体文件项的数据结构
+export struct MediaFileItem {
+    name: string,
+    path: string,
+    file_type: string,
+    size: string,
+    date: string,
+    status: string,
+}
+
+// 分类规则的数据结构
+export struct RuleItem {
+    name: string,
+    description: string,
+    extensions: string,
+    enabled: bool,
+}
+
+// 统计信息
+export struct Statistics {
+    total: int,
+    success: int,
+    skipped: int,
+    renamed: int,
+    failed: int,
+}
+
+// 应用状态枚举
+export enum AppState {
+    Idle,
+    Scanning,
+    Processing,
+    Completed,
+}
+
+// 主窗口组件
+export component MainWindow inherits Window {
+    title: "MediaClassifier";
+    min-width: 800px;
+    min-height: 600px;
+    preferred-width: 1024px;
+    preferred-height: 768px;
+    background: Palette.background;
+
+    // 属性
+    in-out property <string> working_directory: ".";
+    in-out property <string> config_path: "~/.config/media-classifier/config.yaml";
+    in-out property <[MediaFileItem]> media_files: [];
+    in-out property <[RuleItem]> rules: [];
+    in-out property <Statistics> stats: { total: 0, success: 0, skipped: 0, renamed: 0, failed: 0 };
+    in-out property <AppState> app_state: AppState.Idle;
+    in-out property <float> progress: 0.0;
+    in-out property <string> status_message: "就绪";
+    in-out property <bool> clean_empty_dirs: true;
+
+    // 回调
+    callback browse_directory();
+    callback browse_config();
+    callback scan_files();
+    callback start_classification();
+    callback stop_classification();
+    callback show_config();
+    callback reload_config();
+
+    VerticalBox {
+        padding: 16px;
+        spacing: 12px;
+
+        // 标题栏
+        HorizontalBox {
+            alignment: center;
+            Text {
+                text: "🎬 MediaClassifier";
+                font-size: 24px;
+                font-weight: 700;
+                color: Palette.foreground;
+            }
+        }
+
+        // 目录选择区域
+        GroupBox {
+            title: "📁 目录设置";
+
+            VerticalBox {
+                spacing: 8px;
+
+                HorizontalBox {
+                    spacing: 8px;
+                    Text {
+                        text: "工作目录:";
+                        vertical-alignment: center;
+                        width: 80px;
+                    }
+                    dir-input := LineEdit {
+                        text <=> working_directory;
+                        placeholder-text: "选择要处理的目录...";
+                        horizontal-stretch: 1;
+                    }
+                    Button {
+                        text: "浏览...";
+                        clicked => { browse_directory(); }
+                    }
+                }
+
+                HorizontalBox {
+                    spacing: 8px;
+                    Text {
+                        text: "配置文件:";
+                        vertical-alignment: center;
+                        width: 80px;
+                    }
+                    config-input := LineEdit {
+                        text <=> config_path;
+                        placeholder-text: "选择配置文件...";
+                        horizontal-stretch: 1;
+                    }
+                    Button {
+                        text: "浏览...";
+                        clicked => { browse_config(); }
+                    }
+                    Button {
+                        text: "查看";
+                        clicked => { show_config(); }
+                    }
+                }
+            }
+        }
+
+        // 操作区域
+        HorizontalBox {
+            spacing: 12px;
+            alignment: center;
+
+            Button {
+                text: app_state == AppState.Scanning ? "扫描中..." : "🔍 扫描文件";
+                enabled: app_state == AppState.Idle || app_state == AppState.Completed;
+                clicked => { scan_files(); }
+            }
+
+            Button {
+                text: app_state == AppState.Processing ? "处理中..." : "▶️ 开始分类";
+                enabled: app_state == AppState.Idle && media_files.length > 0;
+                primary: true;
+                clicked => { start_classification(); }
+            }
+
+            Button {
+                text: "⏹️ 停止";
+                enabled: app_state == AppState.Scanning || app_state == AppState.Processing;
+                clicked => { stop_classification(); }
+            }
+
+            CheckBox {
+                text: "处理后清理空目录";
+                checked <=> clean_empty_dirs;
+            }
+        }
+
+        // 进度条
+        if app_state == AppState.Scanning || app_state == AppState.Processing: HorizontalBox {
+            spacing: 8px;
+            ProgressIndicator {
+                progress: progress;
+                horizontal-stretch: 1;
+            }
+            Text {
+                text: "\{Math.round(progress * 100)}%";
+                vertical-alignment: center;
+            }
+        }
+
+        // 文件列表区域
+        GroupBox {
+            title: "📋 媒体文件列表 (\{media_files.length} 个文件)";
+            vertical-stretch: 1;
+
+            file-list := ListView {
+                for item in media_files: Rectangle {
+                    height: 32px;
+                    background: Palette.background;
+                    
+                    HorizontalBox {
+                        spacing: 8px;
+                        padding-left: 8px;
+                        padding-right: 8px;
+                        
+                        Text {
+                            text: item.name;
+                            vertical-alignment: center;
+                            horizontal-stretch: 2;
+                        }
+                        Text {
+                            text: item.file_type;
+                            vertical-alignment: center;
+                            width: 60px;
+                        }
+                        Text {
+                            text: item.size;
+                            vertical-alignment: center;
+                            width: 80px;
+                        }
+                        Text {
+                            text: item.status;
+                            vertical-alignment: center;
+                            width: 100px;
+                            color: item.status == "成功" ? #4caf50 : 
+                                   item.status == "失败" ? #f44336 : 
+                                   Palette.foreground;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 统计区域
+        GroupBox {
+            title: "📊 统计信息";
+
+            HorizontalBox {
+                spacing: 16px;
+                alignment: center;
+
+                HorizontalBox {
+                    spacing: 4px;
+                    Text { text: "📊 总计:"; font-weight: 500; }
+                    Text { text: "\{stats.total}"; color: Palette.foreground; }
+                }
+                HorizontalBox {
+                    spacing: 4px;
+                    Text { text: "✅ 成功:"; font-weight: 500; }
+                    Text { text: "\{stats.success}"; color: #4caf50; }
+                }
+                HorizontalBox {
+                    spacing: 4px;
+                    Text { text: "🔄 重命名:"; font-weight: 500; }
+                    Text { text: "\{stats.renamed}"; color: #2196f3; }
+                }
+                HorizontalBox {
+                    spacing: 4px;
+                    Text { text: "⏭️ 跳过:"; font-weight: 500; }
+                    Text { text: "\{stats.skipped}"; color: #ff9800; }
+                }
+                HorizontalBox {
+                    spacing: 4px;
+                    Text { text: "❌ 失败:"; font-weight: 500; }
+                    Text { text: "\{stats.failed}"; color: #f44336; }
+                }
+            }
+        }
+
+        // 状态栏
+        HorizontalBox {
+            spacing: 8px;
+            Rectangle {
+                width: 8px;
+                height: 8px;
+                border-radius: 4px;
+                background: app_state == AppState.Idle ? #4caf50 :
+                           app_state == AppState.Scanning ? #2196f3 :
+                           app_state == AppState.Processing ? #ff9800 :
+                           #4caf50;
+            }
+            Text {
+                text: status_message;
+                color: Palette.foreground;
+                horizontal-stretch: 1;
+            }
+        }
+    }
+}

@@ -1,26 +1,16 @@
-mod classifier;
-mod config;
 mod config_display;
-mod conflict;
-mod filter;
-mod media_types;
-mod metadata;
-mod rule_matcher;
-mod utils;
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use classifier::{ClassifyResult, classify_file_with_config};
-use config::Config;
 use config_display::show_config;
-use filter::FileFilter;
 use log::{error, info};
+use mc_lib::{
+    ClassifyResult, Config, FileFilter, classify_file_with_config, get_media_info, remove_empty_dirs,
+};
 use simplelog::*;
 use std::fs::File;
 use std::path::PathBuf;
 use walkdir::WalkDir;
-
-use crate::utils::remove_empty_dirs;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -170,7 +160,7 @@ fn main() -> Result<()> {
                             from.file_name().unwrap().to_string_lossy(),
                             to.strip_prefix(&target_dir).unwrap_or(to).display()
                         );
-                    },
+                    }
                     ClassifyResult::Renamed { from, to, .. } => {
                         println!(
                             "{} 🔄 Renamed: {} → {}",
@@ -178,14 +168,14 @@ fn main() -> Result<()> {
                             from.file_name().unwrap().to_string_lossy(),
                             to.strip_prefix(&target_dir).unwrap_or(to).display()
                         );
-                    },
+                    }
                     ClassifyResult::Skipped { path, .. } => {
                         println!(
                             "{} ⏭️  Skipped: {} (already exists)",
                             progress,
                             path.file_name().unwrap().to_string_lossy()
                         );
-                    },
+                    }
                     ClassifyResult::Failed { path, error } => {
                         println!(
                             "{} ❌ Failed: {} - {}",
@@ -193,10 +183,10 @@ fn main() -> Result<()> {
                             path.file_name().unwrap().to_string_lossy(),
                             error
                         );
-                    },
+                    }
                 }
                 stats.record(result);
-            },
+            }
             Err(e) => {
                 error!("Error processing {:?}: {}", file, e);
                 println!(
@@ -206,7 +196,7 @@ fn main() -> Result<()> {
                     e
                 );
                 stats.failed += 1;
-            },
+            }
         }
     }
     // 使用配置或命令行参数决定是否清理空目录
@@ -258,7 +248,7 @@ fn scan_media_files(dir: &PathBuf, config: &Config) -> Result<Vec<PathBuf>> {
         let path = entry.path();
 
         // 检查是否为媒体文件
-        if media_types::get_media_info(path).is_some() {
+        if get_media_info(path).is_some() {
             media_files.push(path.to_path_buf());
         }
     }
