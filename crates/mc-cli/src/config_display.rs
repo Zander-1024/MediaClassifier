@@ -1,7 +1,7 @@
-use mc_lib::{Config, FileSize};
 use comfy_table::modifiers::UTF8_ROUND_CORNERS;
 use comfy_table::presets::UTF8_FULL;
 use comfy_table::{Cell, Color, Table};
+use mc_lib::{Config, FileSize};
 
 /// 显示配置信息（表格格式）
 pub fn show_config(config: &Config, config_path: &str) {

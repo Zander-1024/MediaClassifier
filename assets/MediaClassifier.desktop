@@ -1,0 +1,13 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=MediaClassifier
+GenericName=Media File Organizer
+Comment=Rule-based media file automatic classification tool
+Comment[zh_CN]=基于规则的媒体文件自动分类工具
+Exec=/usr/local/bin/MediaClassifierGUI
+Icon=mediaclassifier
+Terminal=false
+Categories=Utility;FileTools;
+Keywords=media;file;organizer;classifier;
+StartupNotify=true

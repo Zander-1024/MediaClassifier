@@ -30,7 +30,7 @@ mod rule_matcher;
 mod utils;
 
 // Re-export public items
-pub use classifier::{classify_file, classify_file_with_config, ClassifyResult};
+pub use classifier::{ClassifyResult, classify_file, classify_file_with_config};
 pub use config::{Config, ExcludeConfig, FileSize, FileSizeFilter, GlobalConfig, Rule};
 pub use filter::FileFilter;
 pub use media_types::{

@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use mc_lib::{classify_file_with_config, ClassifyResult, Config, FileFilter};
+use mc_lib::{ClassifyResult, Config, FileFilter, classify_file_with_config};
 use walkdir::WalkDir;
 
 slint::include_modules!();
@@ -66,6 +66,12 @@ fn get_zh_strings() -> I18nStrings {
         exclude_add: "添加".into(),
         exclude_add_folder: "+ 添加文件夹".into(),
         exclude_placeholder: "输入文件夹名称（如：.git, node_modules）".into(),
+        about_title: "🎞️ 关于 MediaClassifier".into(),
+        about_version: "版本：v1.2.0".into(),
+        about_description:
+            "一款基于规则的媒体文件自动分类工具，支持自定义目录模板、文件大小过滤等功能。".into(),
+        about_author: "作者：Zander".into(),
+        about_support: "如果您觉得这个工具有用，欢迎支持：".into(),
     }
 }
 
@@ -121,6 +127,11 @@ fn get_en_strings() -> I18nStrings {
         exclude_add: "Add".into(),
         exclude_add_folder: "+ Add Folder".into(),
         exclude_placeholder: "Enter folder name (e.g., .git, node_modules)".into(),
+        about_title: "🎞️ About MediaClassifier".into(),
+        about_version: "Version: v1.2.0".into(),
+        about_description: "A rule-based media file auto-classification tool with custom directory templates, file size filtering, and more.".into(),
+        about_author: "Author: Zander".into(),
+        about_support: "If you find this tool useful, feel free to support:".into(),
     }
 }
 
@@ -288,10 +299,10 @@ fn main() -> anyhow::Result<()> {
                                 }
                             })
                             .ok();
-                        }
+                        },
                         Ok(ClassifyResult::Skipped { .. }) => {
                             skipped += 1;
-                        }
+                        },
                         Ok(ClassifyResult::Renamed { from, to }) => {
                             renamed += 1;
                             let msg = format!("🔄 {} -> {}\n", from.display(), to.display());
@@ -303,7 +314,7 @@ fn main() -> anyhow::Result<()> {
                                 }
                             })
                             .ok();
-                        }
+                        },
                         Ok(ClassifyResult::Failed { path, error }) => {
                             failed += 1;
                             let msg = format!("❌ {}: {}\n", path.display(), error);
@@ -315,7 +326,7 @@ fn main() -> anyhow::Result<()> {
                                 }
                             })
                             .ok();
-                        }
+                        },
                         Err(e) => {
                             failed += 1;
                             let msg = format!("❌ {}: {}\n", file.display(), e);
@@ -327,7 +338,7 @@ fn main() -> anyhow::Result<()> {
                                 }
                             })
                             .ok();
-                        }
+                        },
                     }
                 }
 
@@ -435,7 +446,7 @@ fn main() -> anyhow::Result<()> {
     main_window.on_edit_rule(move |rule_id| {
         if let Some(window) = main_window_weak.upgrade() {
             let config_guard = config_clone.lock().unwrap();
-            
+
             if let Some(rule) = config_guard.rules.get(rule_id as usize) {
                 window.set_is_editing_rule(true);
                 window.set_editing_rule_id(rule_id);
@@ -517,15 +528,16 @@ fn main() -> anyhow::Result<()> {
             // 添加或更新配置并保存
             {
                 let mut config_guard = config_clone.lock().unwrap();
-                
-                if is_editing && editing_id >= 0 && (editing_id as usize) < config_guard.rules.len() {
+
+                if is_editing && editing_id >= 0 && (editing_id as usize) < config_guard.rules.len()
+                {
                     // 更新现有规则
                     config_guard.rules[editing_id as usize] = new_rule;
                 } else {
                     // 添加新规则
                     config_guard.rules.push(new_rule);
                 }
-                
+
                 save_config(&config_guard).ok();
 
                 // 更新 UI
@@ -610,7 +622,7 @@ fn main() -> anyhow::Result<()> {
                 .iter()
                 .map(|s| s.clone().into())
                 .collect();
-            
+
             let model = std::rc::Rc::new(slint::VecModel::from(exclude_list));
             window.set_exclude_folders(model.into());
             window.set_show_exclude_popup(true);
@@ -622,14 +634,18 @@ fn main() -> anyhow::Result<()> {
     let config_clone = config.clone();
     main_window.on_add_exclude_folder(move || {
         if let Some(window) = main_window_weak.upgrade() {
-            let folder = window.get_new_exclude_folder().to_string().trim().to_string();
+            let folder = window
+                .get_new_exclude_folder()
+                .to_string()
+                .trim()
+                .to_string();
             if !folder.is_empty() {
                 // 添加到配置
                 let mut cfg = config_clone.lock().unwrap();
                 if !cfg.exclude.directories.contains(&folder) {
                     cfg.exclude.directories.push(folder.clone());
                     let _ = save_config(&cfg);
-                    
+
                     // 更新UI列表
                     let exclude_list: Vec<slint::SharedString> = cfg
                         .exclude
@@ -637,7 +653,7 @@ fn main() -> anyhow::Result<()> {
                         .iter()
                         .map(|s| s.clone().into())
                         .collect();
-                    
+
                     let model = std::rc::Rc::new(slint::VecModel::from(exclude_list));
                     window.set_exclude_folders(model.into());
                     window.set_new_exclude_folder("".into());
@@ -655,7 +671,7 @@ fn main() -> anyhow::Result<()> {
             if (index as usize) < cfg.exclude.directories.len() {
                 cfg.exclude.directories.remove(index as usize);
                 let _ = save_config(&cfg);
-                
+
                 // 更新UI列表
                 let exclude_list: Vec<slint::SharedString> = cfg
                     .exclude
@@ -663,7 +679,7 @@ fn main() -> anyhow::Result<()> {
                     .iter()
                     .map(|s| s.clone().into())
                     .collect();
-                
+
                 let model = std::rc::Rc::new(slint::VecModel::from(exclude_list));
                 window.set_exclude_folders(model.into());
             }
@@ -676,11 +692,19 @@ fn main() -> anyhow::Result<()> {
         if let Some(window) = main_window_weak.upgrade() {
             if let Some(folder) = rfd::FileDialog::new().pick_folder() {
                 if let Some(folder_name) = folder.file_name() {
-                    window.set_new_exclude_folder(
-                        folder_name.to_string_lossy().to_string().into()
-                    );
+                    window.set_new_exclude_folder(folder_name.to_string_lossy().to_string().into());
                 }
             }
+        }
+    });
+
+    // ========================================================================
+    // 显示关于应用弹窗
+    // ========================================================================
+    let main_window_weak = main_window.as_weak();
+    main_window.on_show_about(move || {
+        if let Some(window) = main_window_weak.upgrade() {
+            window.set_show_about_popup(true);
         }
     });
 

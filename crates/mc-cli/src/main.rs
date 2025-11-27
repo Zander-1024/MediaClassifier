@@ -5,7 +5,8 @@ use clap::Parser;
 use config_display::show_config;
 use log::{error, info};
 use mc_lib::{
-    ClassifyResult, Config, FileFilter, classify_file_with_config, get_media_info, remove_empty_dirs,
+    ClassifyResult, Config, FileFilter, classify_file_with_config, get_media_info,
+    remove_empty_dirs,
 };
 use simplelog::*;
 use std::fs::File;
@@ -160,7 +161,7 @@ fn main() -> Result<()> {
                             from.file_name().unwrap().to_string_lossy(),
                             to.strip_prefix(&target_dir).unwrap_or(to).display()
                         );
-                    }
+                    },
                     ClassifyResult::Renamed { from, to, .. } => {
                         println!(
                             "{} 🔄 Renamed: {} → {}",
@@ -168,14 +169,14 @@ fn main() -> Result<()> {
                             from.file_name().unwrap().to_string_lossy(),
                             to.strip_prefix(&target_dir).unwrap_or(to).display()
                         );
-                    }
+                    },
                     ClassifyResult::Skipped { path, .. } => {
                         println!(
                             "{} ⏭️  Skipped: {} (already exists)",
                             progress,
                             path.file_name().unwrap().to_string_lossy()
                         );
-                    }
+                    },
                     ClassifyResult::Failed { path, error } => {
                         println!(
                             "{} ❌ Failed: {} - {}",
@@ -183,10 +184,10 @@ fn main() -> Result<()> {
                             path.file_name().unwrap().to_string_lossy(),
                             error
                         );
-                    }
+                    },
                 }
                 stats.record(result);
-            }
+            },
             Err(e) => {
                 error!("Error processing {:?}: {}", file, e);
                 println!(
@@ -196,7 +197,7 @@ fn main() -> Result<()> {
                     e
                 );
                 stats.failed += 1;
-            }
+            },
         }
     }
     // 使用配置或命令行参数决定是否清理空目录

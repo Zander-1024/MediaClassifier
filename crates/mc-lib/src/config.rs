@@ -173,9 +173,10 @@ impl Config {
         fs::write(path, yaml)?;
         Ok(())
     }
+}
 
-    /// 获取默认配置
-    pub fn default() -> Self {
+impl Default for Config {
+    fn default() -> Self {
         Config {
             global: GlobalConfig {
                 date_format: "YYYYMMDD".to_string(),
@@ -304,7 +305,9 @@ impl Config {
             },
         }
     }
+}
 
+impl Config {
     /// 生成带注释的默认配置文件内容
     pub fn generate_default_yaml() -> String {
         let content = include_str!("../default_cfg.yaml");

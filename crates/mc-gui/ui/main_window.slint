@@ -126,6 +126,12 @@ export struct I18nStrings {
     exclude_add: string,
     exclude_add_folder: string,
     exclude_placeholder: string,
+    // 关于应用
+    about_title: string,
+    about_version: string,
+    about_description: string,
+    about_author: string,
+    about_support: string,
 }
 
 // ============================================================================
@@ -184,6 +190,9 @@ export component MainWindow inherits Window {
     in-out property <[string]> exclude_folders: [];
     in-out property <string> new_exclude_folder: "";
     
+    // 关于应用
+    in-out property <bool> show_about_popup: false;
+    
     // 当前语言
     in-out property <string> current_language: "zh";
     
@@ -238,6 +247,11 @@ export component MainWindow inherits Window {
         exclude_add: "添加",
         exclude_add_folder: "+ 添加文件夹",
         exclude_placeholder: "输入文件夹名称（如：.git, node_modules）",
+        about_title: "🎞️ 关于 MediaClassifier",
+        about_version: "版本：v1.2.0",
+        about_description: "一款基于规则的媒体文件自动分类工具，支持自定义目录模板、文件大小过滤等功能。",
+        about_author: "作者：Zander",
+        about_support: "如果您觉得这个工具有用，欢迎支持：",
     };
 
     // ========================================================================
@@ -258,6 +272,7 @@ export component MainWindow inherits Window {
     callback add_exclude_folder();
     callback remove_exclude_folder(int);
     callback browse_exclude_folder();
+    callback show_about();
     callback change_theme(ThemeMode);
     callback change_language(string);
     
@@ -328,6 +343,16 @@ export component MainWindow inherits Window {
                         } else {
                             change_theme(ThemeMode.Auto);
                         }
+                    }
+                }
+                
+                // 关于按钮
+                Button {
+                    text: "ℹ️";
+                    width: 48px;
+                    height: 48px;
+                    clicked => {
+                        show_about();
                     }
                 }
                 
@@ -583,7 +608,7 @@ export component MainWindow inherits Window {
 
                                         Text {
                                             text: rule.directory_template;
-                                            width: 200px;
+                                            horizontal-stretch: 1;
                                             vertical-alignment: center;
                                             overflow: elide;
                                         }
@@ -598,24 +623,46 @@ export component MainWindow inherits Window {
 
                                         HorizontalBox {
                                             width: 120px;
-                                            spacing: 2px;
-                                            padding-left: 8px;
-                                            padding-right: 8px;
-                                            Button {
-                                                text: "✏️";
-                                                width: 28px;
-                                                height: 28px;
-                                                clicked => {
-                                                    edit_rule(rule.id);
+                                            spacing: 8px;
+                                            alignment: center;
+                                            
+                                            Rectangle {
+                                                width: 32px;
+                                                height: 32px;
+                                                border-radius: 4px;
+                                                background: touch-edit.has-hover ? Palette.accent-background : transparent;
+                                                
+                                                Text {
+                                                    text: "✏️";
+                                                    font-size: 18px;
+                                                    vertical-alignment: center;
+                                                    horizontal-alignment: center;
+                                                }
+                                                
+                                                touch-edit := TouchArea {
+                                                    clicked => {
+                                                        edit_rule(rule.id);
+                                                    }
                                                 }
                                             }
 
-                                            Button {
-                                                text: "🗑️";
-                                                width: 28px;
-                                                height: 28px;
-                                                clicked => {
-                                                    delete_rule(rule.id);
+                                            Rectangle {
+                                                width: 32px;
+                                                height: 32px;
+                                                border-radius: 4px;
+                                                background: touch-delete.has-hover ? Palette.accent-background : transparent;
+                                                
+                                                Text {
+                                                    text: "🗑️";
+                                                    font-size: 18px;
+                                                    vertical-alignment: center;
+                                                    horizontal-alignment: center;
+                                                }
+                                                
+                                                touch-delete := TouchArea {
+                                                    clicked => {
+                                                        delete_rule(rule.id);
+                                                    }
                                                 }
                                             }
                                         }
@@ -881,27 +928,27 @@ export component MainWindow inherits Window {
                             checked <=> new_rule_enabled;
                         }
                     }
+                }
+                
+                // 按钮区
+                HorizontalBox {
+                    spacing: 12px;
+                    Rectangle {
+                        horizontal-stretch: 1;
+                    }
 
-                    // 按钮区
-                    HorizontalBox {
-                        spacing: 12px;
-                        Rectangle {
-                            horizontal-stretch: 1;
+                    Button {
+                        text: i18n.config_cancel;
+                        clicked => {
+                            cancel_add_rule();
                         }
+                    }
 
-                        Button {
-                            text: i18n.config_cancel;
-                            clicked => {
-                                cancel_add_rule();
-                            }
-                        }
-
-                        Button {
-                            text: i18n.config_save;
-                            primary: true;
-                            clicked => {
-                                save_new_rule();
-                            }
+                    Button {
+                        text: i18n.config_save;
+                        primary: true;
+                        clicked => {
+                            save_new_rule();
                         }
                     }
                 }
@@ -1018,6 +1065,109 @@ export component MainWindow inherits Window {
                         clicked => {
                             show_exclude_popup = false;
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    // ========================================================================
+    // 关于应用弹窗
+    // ========================================================================
+    if show_about_popup: Rectangle {
+        x: 0;
+        y: 0;
+        width: 100%;
+        height: 100%;
+        background: #00000080;
+        Rectangle {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            width: 480px;
+            border-radius: 12px;
+            background: Palette.background;
+            drop-shadow-blur: 20px;
+            drop-shadow-color: #00000040;
+            
+            VerticalBox {
+                padding: 24px;
+                spacing: 20px;
+                
+                // 标题
+                Text {
+                    text: i18n.about_title;
+                    font-size: 20px;
+                    font-weight: 700;
+                    horizontal-alignment: center;
+                }
+                
+                Rectangle {
+                    height: 1px;
+                    background: Palette.border;
+                }
+                
+                // 应用图标（占位）
+                Rectangle {
+                    height: 80px;
+                    HorizontalBox {
+                        alignment: center;
+                        Text {
+                            text: "🎬";
+                            font-size: 64px;
+                        }
+                    }
+                }
+                
+                // 版本信息
+                Text {
+                    text: i18n.about_version;
+                    font-size: 14px;
+                    horizontal-alignment: center;
+                    color: Palette.foreground.transparentize(0.3);
+                }
+                
+                // 应用描述
+                Text {
+                    text: i18n.about_description;
+                    font-size: 14px;
+                    horizontal-alignment: center;
+                    wrap: word-wrap;
+                }
+                
+                // 作者信息
+                Text {
+                    text: i18n.about_author;
+                    font-size: 14px;
+                    horizontal-alignment: center;
+                }
+                
+                Rectangle {
+                    height: 1px;
+                    background: Palette.border;
+                }
+                
+                // 支持信息
+                Text {
+                    text: i18n.about_support;
+                    font-size: 13px;
+                    horizontal-alignment: center;
+                    color: Palette.foreground.transparentize(0.3);
+                }
+                
+                // 收款码图片
+                Image {
+                    source: @image-url("../../../assets/alipay.jpg");
+                    width: 200px;
+                    height: 200px;
+                    image-fit: contain;
+                }
+                
+                // 关闭按钮
+                Button {
+                    text: i18n.stats_close;
+                    primary: true;
+                    clicked => {
+                        show_about_popup = false;
                     }
                 }
             }
