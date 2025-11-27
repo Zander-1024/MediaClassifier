@@ -33,29 +33,57 @@ jobs:
             target
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
+      - name: Get version from Cargo.toml
+        id: get_version
+        shell: bash
+        run: |
+          VERSION=$(grep -m1 'version = ' Cargo.toml | sed 's/.*version = "\(.*\)"/\1/')
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Build
         run: cargo build --release --verbose
 
       - name: Run tests
         run: cargo test --verbose
 
-      - name: Upload binary (Linux)
+      - name: Upload CLI binary (Linux)
         if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@v5
         with:
-          name: MediaClassifier-linux
+          name: MediaClassifier-${{ steps.get_version.outputs.VERSION }}-linux
           path: target/release/MediaClassifier
 
-      - name: Upload binary (macOS)
+      - name: Upload GUI binary (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v5
+        with:
+          name: MediaClassifierGUI-${{ steps.get_version.outputs.VERSION }}-linux
+          path: target/release/MediaClassifierGUI
+
+      - name: Upload CLI binary (macOS)
         if: matrix.os == 'macos-latest'
         uses: actions/upload-artifact@v5
         with:
-          name: MediaClassifier-macos
+          name: MediaClassifier-${{ steps.get_version.outputs.VERSION }}-macos
           path: target/release/MediaClassifier
 
-      - name: Upload binary (Windows)
+      - name: Upload GUI binary (macOS)
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v5
+        with:
+          name: MediaClassifierGUI-${{ steps.get_version.outputs.VERSION }}-macos
+          path: target/release/MediaClassifierGUI
+
+      - name: Upload CLI binary (Windows)
         if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v5
         with:
-          name: MediaClassifier-windows
+          name: MediaClassifier-${{ steps.get_version.outputs.VERSION }}-windows
           path: target/release/MediaClassifier.exe
+
+      - name: Upload GUI binary (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v5
+        with:
+          name: MediaClassifierGUI-${{ steps.get_version.outputs.VERSION }}-windows
+          path: target/release/MediaClassifierGUI.exe

@@ -1,0 +1,1176 @@
+// MediaClassifier GUI - Main Window
+// 使用 Slint 构建的媒体文件分类工具图形界面
+// 支持 i18n、主题切换、多页面导航
+
+import {
+    Button,
+    LineEdit,
+    ListView,
+    VerticalBox,
+    HorizontalBox,
+    GroupBox,
+    CheckBox,
+    ProgressIndicator,
+    ScrollView,
+    Palette,
+    ComboBox,
+} from "std-widgets.slint";
+
+// ============================================================================
+// 数据结构定义
+// ============================================================================
+
+// 分类规则的数据结构
+export struct RuleItem {
+    id: int,
+    name: string,
+    description: string,
+    extensions: string,
+    directory_template: string,
+    min_size: string,
+    max_size: string,
+    enabled: bool,
+}
+
+// 统计信息
+export struct Statistics {
+    total: int,
+    success: int,
+    skipped: int,
+    renamed: int,
+    failed: int,
+}
+
+// 应用状态枚举
+export enum AppState {
+    Idle,
+    Working,
+    Completed,
+}
+
+// 页面枚举
+export enum PageType {
+    Main,
+    Config,
+}
+
+// 主题枚举
+export enum ThemeMode {
+    Auto,
+    Light,
+    Dark,
+}
+
+// ============================================================================
+// i18n 字符串结构
+// ============================================================================
+export struct I18nStrings {
+    // 通用
+    app_title: string,
+    // 主页面
+    working_directory: string,
+    select_directory: string,
+    start_working: string,
+    show_details: string,
+    hide_details: string,
+    // 进度
+    progress_label: string,
+    // 日志消息
+    log_error_dir_not_exist: string,
+    log_scanning: string,
+    log_processing: string,
+    // 统计弹窗
+    stats_title: string,
+    stats_total: string,
+    stats_success: string,
+    stats_renamed: string,
+    stats_skipped: string,
+    stats_failed: string,
+    stats_close: string,
+    // 配置页面
+    config_title: string,
+    config_add: string,
+    config_exclude: string,
+    config_back: string,
+    config_rule_name: string,
+    config_rule_desc: string,
+    config_rule_ext: string,
+    config_rule_template: string,
+    config_rule_min_size: string,
+    config_rule_max_size: string,
+    config_rule_enabled: string,
+    config_edit: string,
+    config_delete: string,
+    config_save: string,
+    config_cancel: string,
+    // 导航
+    nav_config: string,
+    nav_main: string,
+    // 主题
+    theme_auto: string,
+    theme_light: string,
+    theme_dark: string,
+    // 语言
+    lang_zh: string,
+    lang_en: string,
+    // Placeholder
+    placeholder_select_folder: string,
+    placeholder_ext_example: string,
+    placeholder_template_example: string,
+    placeholder_min_size: string,
+    placeholder_max_size: string,
+    // 状态
+    status_processing: string,
+    // 屏蔽文件夹
+    exclude_title: string,
+    exclude_add: string,
+    exclude_add_folder: string,
+    exclude_placeholder: string,
+    // 关于应用
+    about_title: string,
+    about_version: string,
+    about_description: string,
+    about_author: string,
+    about_support: string,
+}
+
+// ============================================================================
+// 主窗口组件
+// ============================================================================
+export component MainWindow inherits Window {
+    title: "MediaClassifier";
+    min-width: 800px;
+    min-height: 600px;
+    preferred-width: 900px;
+    preferred-height: 700px;
+    background: Palette.background;
+
+    // ========================================================================
+    // 属性
+    // ========================================================================
+    
+    // 主题
+    in-out property <ThemeMode> theme_mode: ThemeMode.Auto;
+    
+    // 工作目录
+    in-out property <string> working_directory: "";
+    
+    // 应用状态
+    in-out property <AppState> app_state: AppState.Idle;
+    in-out property <float> progress: 0.0;
+    
+    // 日志内容
+    in-out property <string> log_content: "";
+    in-out property <bool> show_log: false;
+    
+    // 统计信息
+    in-out property <Statistics> stats: { total: 0, success: 0, skipped: 0, renamed: 0, failed: 0 };
+    in-out property <bool> show_stats_popup: false;
+    
+    // 配置规则列表
+    in-out property <[RuleItem]> rules: [];
+    
+    // 当前页面
+    in-out property <PageType> current_page: PageType.Main;
+    
+    // 添加/编辑规则弹窗
+    in-out property <bool> show_add_rule_popup: false;
+    in-out property <bool> is_editing_rule: false;
+    in-out property <int> editing_rule_id: -1;
+    in-out property <string> new_rule_name: "";
+    in-out property <string> new_rule_desc: "";
+    in-out property <string> new_rule_ext: "";
+    in-out property <string> new_rule_template: "";
+    in-out property <string> new_rule_min_size: "";
+    in-out property <string> new_rule_max_size: "";
+    in-out property <bool> new_rule_enabled: true;
+    
+    // 屏蔽文件夹管理
+    in-out property <bool> show_exclude_popup: false;
+    in-out property <[string]> exclude_folders: [];
+    in-out property <string> new_exclude_folder: "";
+    
+    // 关于应用
+    in-out property <bool> show_about_popup: false;
+    
+    // 当前语言
+    in-out property <string> current_language: "zh";
+    
+    // i18n 字符串
+    in-out property <I18nStrings> i18n: {
+        app_title: "🎬 MediaClassifier",
+        working_directory: "工作目录",
+        select_directory: "选择工作目录",
+        start_working: "开始工作",
+        show_details: "显示详情",
+        hide_details: "隐藏详情",
+        progress_label: "处理进度",
+        log_error_dir_not_exist: "❌ 错误: 目录不存在",
+        log_scanning: "🔍 开始扫描文件...",
+        log_processing: "📁 处理:",
+        stats_title: "📊 处理完成",
+        stats_total: "总计",
+        stats_success: "成功",
+        stats_renamed: "重命名",
+        stats_skipped: "跳过",
+        stats_failed: "失败",
+        stats_close: "关闭",
+        config_title: "⚙️ 配置管理",
+        config_add: "➕ 新增规则",
+        config_exclude: "🚫 屏蔽文件夹",
+        config_back: "← 返回主页",
+        config_rule_name: "规则名称",
+        config_rule_desc: "规则描述",
+        config_rule_ext: "文件扩展名",
+        config_rule_template: "目录模板",
+        config_rule_min_size: "最小大小",
+        config_rule_max_size: "最大大小",
+        config_rule_enabled: "启用",
+        config_edit: "编辑",
+        config_delete: "删除",
+        config_save: "保存",
+        config_cancel: "取消",
+        nav_config: "⚙️",
+        nav_main: "🏠",
+        theme_auto: "自动",
+        theme_light: "浅色",
+        theme_dark: "深色",
+        lang_zh: "中文",
+        lang_en: "EN",
+        placeholder_select_folder: "点击选择文件夹...",
+        placeholder_ext_example: "jpg,png,gif",
+        placeholder_template_example: "{ext}/{date}",
+        placeholder_min_size: "0B",
+        placeholder_max_size: "无限制",
+        status_processing: "⏳ 处理中...",
+        exclude_title: "🚫 屏蔽文件夹管理",
+        exclude_add: "添加",
+        exclude_add_folder: "+ 添加文件夹",
+        exclude_placeholder: "输入文件夹名称（如：.git, node_modules）",
+        about_title: "🎞️ 关于 MediaClassifier",
+        about_version: "版本：v1.2.0",
+        about_description: "一款基于规则的媒体文件自动分类工具，支持自定义目录模板、文件大小过滤等功能。",
+        about_author: "作者：Zander",
+        about_support: "如果您觉得这个工具有用，欢迎支持：",
+    };
+
+    // ========================================================================
+    // 回调
+    // ========================================================================
+    callback browse_directory();
+    callback start_work();
+    callback toggle_log();
+    callback close_stats_popup();
+    callback go_to_config();
+    callback go_to_main();
+    callback add_rule();
+    callback edit_rule(int);
+    callback save_new_rule();
+    callback cancel_add_rule();
+    callback delete_rule(int);
+    callback manage_exclude_folders();
+    callback add_exclude_folder();
+    callback remove_exclude_folder(int);
+    callback browse_exclude_folder();
+    callback show_about();
+    callback change_theme(ThemeMode);
+    callback change_language(string);
+    
+    // 当主题改变时更新 Palette
+    changed theme_mode => {
+        if (self.theme_mode == ThemeMode.Light) {
+            Palette.color-scheme = ColorScheme.light;
+        } else if (self.theme_mode == ThemeMode.Dark) {
+            Palette.color-scheme = ColorScheme.dark;
+        } else {
+            Palette.color-scheme = ColorScheme.unknown;
+        }
+    }
+
+    // ========================================================================
+    // 主布局
+    // ========================================================================
+    VerticalBox {
+        padding: 0px;
+        spacing: 0px;
+
+        // 顶部导航栏
+        Rectangle {
+            height: 68px;
+            background: Palette.background.darker(0.05);
+            HorizontalBox {
+                padding-left: 16px;
+                padding-right: 16px;
+                spacing: 12px;
+                
+                // 应用标题
+                Text {
+                    text: i18n.app_title;
+                    font-size: 18px;
+                    font-weight: 600;
+                    color: Palette.foreground;
+                    vertical-alignment: center;
+                }
+
+                Rectangle {
+                    horizontal-stretch: 1;
+                }
+                
+                // 语言切换按钮
+                Button {
+                    text: current_language == "zh" ? "zh" : "en";
+                    width: 48px;
+                    height: 48px;
+                    clicked => {
+                        if current_language == "zh" {
+                            change_language("en");
+                        } else {
+                            change_language("zh");
+                        }
+                    }
+                }
+                
+                // 主题切换按钮
+                Button {
+                    text: theme_mode == ThemeMode.Light ? "☀️" : (theme_mode == ThemeMode.Dark ? "🌙" : "🔆");
+                    width: 48px;
+                    height: 48px;
+                    clicked => {
+                        if theme_mode == ThemeMode.Auto {
+                            change_theme(ThemeMode.Light);
+                        } else if theme_mode == ThemeMode.Light {
+                            change_theme(ThemeMode.Dark);
+                        } else {
+                            change_theme(ThemeMode.Auto);
+                        }
+                    }
+                }
+                
+                // 关于按钮
+                Button {
+                    text: "ℹ️";
+                    width: 48px;
+                    height: 48px;
+                    clicked => {
+                        show_about();
+                    }
+                }
+                
+                // 仅图标导航按钮
+                Button {
+                    text: current_page == PageType.Main ? i18n.nav_config : i18n.nav_main;
+                    width: 48px;
+                    height: 48px;
+                    clicked => {
+                        if current_page == PageType.Main {
+                            go_to_config();
+                        } else {
+                            go_to_main();
+                        }
+                    }
+                }
+            }
+        }
+
+        // 页面内容区域
+        Rectangle {
+            vertical-stretch: 1;
+            background: Palette.background;
+            
+            // 主页面
+            if current_page == PageType.Main: VerticalBox {
+                padding: 24px;
+                spacing: 20px;
+                alignment: center;
+                
+                // 居中容器
+                VerticalBox {
+                    max-width: 600px;
+                    spacing: 20px;
+                    
+                    // 目录选择输入框
+                    Rectangle {
+                        height: 56px;
+                        border-radius: 8px;
+                        border-width: 1px;
+                        border-color: Palette.border;
+                        background: Palette.background;
+                        
+                        // 使用 Rectangle + TouchArea 包裹 LineEdit 实现点击
+                        Rectangle {
+                            VerticalBox {
+                                padding: 8px;
+                                dir-input := LineEdit {
+                                    text <=> working_directory;
+                                    placeholder-text: i18n.placeholder_select_folder;
+                                    enabled: app_state == AppState.Idle;
+                                }
+                            }
+                            
+                            // TouchArea 覆盖在 LineEdit 上方，捕获点击事件
+                            TouchArea {
+                                width: 100%;
+                                height: 100%;
+                                clicked => {
+                                    if app_state == AppState.Idle {
+                                        browse_directory();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    // 开始按钮
+                    Button {
+                        text: working_directory == "" ? i18n.select_directory : app_state == AppState.Working ? i18n.status_processing : i18n.start_working;
+                        primary: working_directory != "";
+                        enabled: app_state == AppState.Idle && working_directory != "";
+                        height: 56px;
+                        clicked => {
+                            start_work();
+                        }
+                    }
+                    
+                    // 进度区域（仅在工作时显示）
+                    if app_state == AppState.Working: VerticalBox {
+                        spacing: 12px;
+                        HorizontalBox {
+                            Text {
+                                text: i18n.progress_label;
+                                font-weight: 500;
+                                color: Palette.foreground;
+                                vertical-alignment: center;
+                            }
+
+                            Rectangle {
+                                horizontal-stretch: 1;
+                            }
+
+                            Text {
+                                text: "\{Math.round(progress * 100)}%";
+                                color: Palette.foreground;
+                                vertical-alignment: center;
+                            }
+                        }
+
+                        ProgressIndicator {
+                            progress: progress;
+                            height: 8px;
+                        }
+                        
+                        // 详情按钮
+                        Button {
+                            text: show_log ? i18n.hide_details : i18n.show_details;
+                            clicked => {
+                                toggle_log();
+                            }
+                        }
+                    }
+                    
+                    // 日志区域（可折叠）
+                    if show_log && app_state == AppState.Working: Rectangle {
+                        height: 300px;
+                        border-radius: 8px;
+                        border-width: 1px;
+                        border-color: Palette.border;
+                        background: Palette.background.darker(0.02);
+                        ScrollView {
+                            VerticalBox {
+                                padding: 12px;
+                                Text {
+                                    text: log_content;
+                                    font-family: "monospace";
+                                    font-size: 12px;
+                                    color: Palette.foreground;
+                                    wrap: word-wrap;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // 配置页面
+            if current_page == PageType.Config: VerticalBox {
+                padding: 24px;
+                spacing: 20px;
+                
+                // 配置页面标题和按钮
+                HorizontalBox {
+                    spacing: 12px;
+                    Text {
+                        text: i18n.config_title;
+                        font-size: 20px;
+                        font-weight: 600;
+                        color: Palette.foreground;
+                        vertical-alignment: center;
+                    }
+
+                    Rectangle {
+                        horizontal-stretch: 1;
+                    }
+
+                    Button {
+                        text: i18n.config_exclude;
+                        clicked => {
+                            manage_exclude_folders();
+                        }
+                    }
+
+                    Button {
+                        text: i18n.config_add;
+                        primary: true;
+                        clicked => {
+                            add_rule();
+                        }
+                    }
+                }
+                
+                // 规则表格
+                Rectangle {
+                    vertical-stretch: 1;
+                    border-radius: 8px;
+                    border-width: 1px;
+                    border-color: Palette.border;
+                    VerticalBox {
+                        padding: 0px;
+                        spacing: 0px;
+                        
+                        // 表头
+                        Rectangle {
+                            height: 40px;
+                            background: Palette.background.darker(0.05);
+                            HorizontalBox {
+                                padding-left: 12px;
+                                padding-right: 12px;
+                                spacing: 8px;
+                                Text {
+                                    text: i18n.config_rule_name;
+                                    font-weight: 600;
+                                    width: 120px;
+                                    vertical-alignment: center;
+                                }
+
+                                Text {
+                                    text: i18n.config_rule_ext;
+                                    font-weight: 600;
+                                    width: 100px;
+                                    vertical-alignment: center;
+                                }
+
+                                Text {
+                                    text: i18n.config_rule_template;
+                                    font-weight: 600;
+                                    horizontal-stretch: 1;
+                                    vertical-alignment: center;
+                                }
+
+                                Text {
+                                    text: i18n.config_rule_enabled;
+                                    font-weight: 600;
+                                    width: 60px;
+                                    vertical-alignment: center;
+                                }
+
+                                Text {
+                                    text: "";
+                                    width: 120px;
+                                }
+                            }
+                        }
+                        
+                        // 规则列表
+                        ScrollView {
+                            vertical-stretch: 1;
+                            VerticalBox {
+                                padding: 0px;
+                                spacing: 0px;
+                                for rule[idx] in rules: Rectangle {
+                                    height: 44px;
+                                    background: Math.mod(idx, 2) == 0 ? Palette.background : Palette.background.darker(0.02);
+                                    HorizontalBox {
+                                        padding-left: 12px;
+                                        padding-right: 12px;
+                                        spacing: 8px;
+                                        Text {
+                                            text: rule.name;
+                                            width: 120px;
+                                            vertical-alignment: center;
+                                            overflow: elide;
+                                        }
+
+                                        Text {
+                                            text: rule.extensions;
+                                            width: 100px;
+                                            vertical-alignment: center;
+                                            overflow: elide;
+                                        }
+
+                                        Text {
+                                            text: rule.directory_template;
+                                            horizontal-stretch: 1;
+                                            vertical-alignment: center;
+                                            overflow: elide;
+                                        }
+
+                                        Text {
+                                            text: rule.enabled ? "on" : "off";
+                                            width: 60px;
+                                            vertical-alignment: center;
+                                            horizontal-alignment: center;
+                                            color: rule.enabled ? #4caf50 : #f44336;
+                                        }
+
+                                        HorizontalBox {
+                                            width: 120px;
+                                            spacing: 8px;
+                                            alignment: center;
+                                            
+                                            Rectangle {
+                                                width: 32px;
+                                                height: 32px;
+                                                border-radius: 4px;
+                                                background: touch-edit.has-hover ? Palette.accent-background : transparent;
+                                                
+                                                Text {
+                                                    text: "✏️";
+                                                    font-size: 18px;
+                                                    vertical-alignment: center;
+                                                    horizontal-alignment: center;
+                                                }
+                                                
+                                                touch-edit := TouchArea {
+                                                    clicked => {
+                                                        edit_rule(rule.id);
+                                                    }
+                                                }
+                                            }
+
+                                            Rectangle {
+                                                width: 32px;
+                                                height: 32px;
+                                                border-radius: 4px;
+                                                background: touch-delete.has-hover ? Palette.accent-background : transparent;
+                                                
+                                                Text {
+                                                    text: "🗑️";
+                                                    font-size: 18px;
+                                                    vertical-alignment: center;
+                                                    horizontal-alignment: center;
+                                                }
+                                                
+                                                touch-delete := TouchArea {
+                                                    clicked => {
+                                                        delete_rule(rule.id);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ========================================================================
+    // 统计结果弹窗
+    // ========================================================================
+    if show_stats_popup: Rectangle {
+        x: 0;
+        y: 0;
+        width: 100%;
+        height: 100%;
+        background: #00000080;
+        Rectangle {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            width: 400px;
+            height: 320px;
+            border-radius: 12px;
+            background: Palette.background;
+            drop-shadow-blur: 20px;
+            drop-shadow-color: #00000040;
+            VerticalBox {
+                padding: 24px;
+                spacing: 16px;
+                Text {
+                    text: i18n.stats_title;
+                    font-size: 20px;
+                    font-weight: 600;
+                    horizontal-alignment: center;
+                }
+
+                Rectangle {
+                    height: 1px;
+                    background: Palette.border;
+                }
+                
+                // 统计项
+                VerticalBox {
+                    spacing: 12px;
+                    HorizontalBox {
+                        Text {
+                            text: i18n.stats_total + ":";
+                            horizontal-stretch: 1;
+                        }
+
+                        Text {
+                            text: "\{stats.total}";
+                            font-weight: 600;
+                        }
+                    }
+
+                    HorizontalBox {
+                        Text {
+                            text: "✅ " + i18n.stats_success + ":";
+                            horizontal-stretch: 1;
+                        }
+
+                        Text {
+                            text: "\{stats.success}";
+                            font-weight: 600;
+                            color: #4caf50;
+                        }
+                    }
+
+                    HorizontalBox {
+                        Text {
+                            text: "🔄 " + i18n.stats_renamed + ":";
+                            horizontal-stretch: 1;
+                        }
+
+                        Text {
+                            text: "\{stats.renamed}";
+                            font-weight: 600;
+                            color: #2196f3;
+                        }
+                    }
+
+                    HorizontalBox {
+                        Text {
+                            text: "⏭️ " + i18n.stats_skipped + ":";
+                            horizontal-stretch: 1;
+                        }
+
+                        Text {
+                            text: "\{stats.skipped}";
+                            font-weight: 600;
+                            color: #ff9800;
+                        }
+                    }
+
+                    HorizontalBox {
+                        Text {
+                            text: "❌ " + i18n.stats_failed + ":";
+                            horizontal-stretch: 1;
+                        }
+
+                        Text {
+                            text: "\{stats.failed}";
+                            font-weight: 600;
+                            color: #f44336;
+                        }
+                    }
+                }
+
+                Rectangle {
+                    vertical-stretch: 1;
+                }
+
+                Button {
+                    text: i18n.stats_close;
+                    primary: true;
+                    horizontal-stretch: 1;
+                    clicked => {
+                        close_stats_popup();
+                    }
+                }
+            }
+        }
+    }
+
+    // ========================================================================
+    // 新增规则弹窗
+    // ========================================================================
+    if show_add_rule_popup: Rectangle {
+        x: 0;
+        y: 0;
+        width: 100%;
+        height: 100%;
+        background: #00000080;
+        Rectangle {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            width: 500px;
+            height: 480px;
+            border-radius: 12px;
+            background: Palette.background;
+            drop-shadow-blur: 20px;
+            drop-shadow-color: #00000040;
+            VerticalBox {
+                padding: 24px;
+                spacing: 16px;
+                Text {
+                    text: is_editing_rule ? i18n.config_edit : i18n.config_add;
+                    font-size: 18px;
+                    font-weight: 600;
+                }
+
+                Rectangle {
+                    height: 1px;
+                    background: Palette.border;
+                }
+                
+                // 表单字段
+                VerticalBox {
+                    spacing: 12px;
+                    HorizontalBox {
+                        spacing: 8px;
+                        Text {
+                            text: i18n.config_rule_name + ":";
+                            width: 100px;
+                            vertical-alignment: center;
+                        }
+
+                        LineEdit {
+                            text <=> new_rule_name;
+                            horizontal-stretch: 1;
+                        }
+                    }
+
+                    HorizontalBox {
+                        spacing: 8px;
+                        Text {
+                            text: i18n.config_rule_desc + ":";
+                            width: 100px;
+                            vertical-alignment: center;
+                        }
+
+                        LineEdit {
+                            text <=> new_rule_desc;
+                            horizontal-stretch: 1;
+                        }
+                    }
+
+                    HorizontalBox {
+                        spacing: 8px;
+                        Text {
+                            text: i18n.config_rule_ext + ":";
+                            width: 100px;
+                            vertical-alignment: center;
+                        }
+
+                        LineEdit {
+                            text <=> new_rule_ext;
+                            placeholder-text: i18n.placeholder_ext_example;
+                            horizontal-stretch: 1;
+                        }
+                    }
+
+                    HorizontalBox {
+                        spacing: 8px;
+                        Text {
+                            text: i18n.config_rule_template + ":";
+                            width: 100px;
+                            vertical-alignment: center;
+                        }
+
+                        LineEdit {
+                            text <=> new_rule_template;
+                            placeholder-text: i18n.placeholder_template_example;
+                            horizontal-stretch: 1;
+                        }
+                    }
+
+                    HorizontalBox {
+                        spacing: 8px;
+                        Text {
+                            text: i18n.config_rule_min_size + ":";
+                            width: 100px;
+                            vertical-alignment: center;
+                        }
+
+                        LineEdit {
+                            text <=> new_rule_min_size;
+                            placeholder-text: i18n.placeholder_min_size;
+                            horizontal-stretch: 1;
+                        }
+                    }
+
+                    HorizontalBox {
+                        spacing: 8px;
+                        Text {
+                            text: i18n.config_rule_max_size + ":";
+                            width: 100px;
+                            vertical-alignment: center;
+                        }
+
+                        LineEdit {
+                            text <=> new_rule_max_size;
+                            placeholder-text: i18n.placeholder_max_size;
+                            horizontal-stretch: 1;
+                        }
+                    }
+
+                    HorizontalBox {
+                        spacing: 8px;
+                        Text {
+                            text: i18n.config_rule_enabled + ":";
+                            width: 100px;
+                            vertical-alignment: center;
+                        }
+
+                        CheckBox {
+                            checked <=> new_rule_enabled;
+                        }
+                    }
+                }
+                
+                // 按钮区
+                HorizontalBox {
+                    spacing: 12px;
+                    Rectangle {
+                        horizontal-stretch: 1;
+                    }
+
+                    Button {
+                        text: i18n.config_cancel;
+                        clicked => {
+                            cancel_add_rule();
+                        }
+                    }
+
+                    Button {
+                        text: i18n.config_save;
+                        primary: true;
+                        clicked => {
+                            save_new_rule();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ========================================================================
+    // 屏蔽文件夹管理弹窗
+    // ========================================================================
+    if show_exclude_popup: Rectangle {
+        x: 0;
+        y: 0;
+        width: 100%;
+        height: 100%;
+        background: #00000080;
+        Rectangle {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            width: 500px;
+            height: 480px;
+            border-radius: 12px;
+            background: Palette.background;
+            drop-shadow-blur: 20px;
+            drop-shadow-color: #00000040;
+            VerticalBox {
+                padding: 24px;
+                spacing: 16px;
+                Text {
+                    text: i18n.exclude_title;
+                    font-size: 18px;
+                    font-weight: 600;
+                }
+
+                Rectangle {
+                    height: 1px;
+                    background: Palette.border;
+                }
+                
+                // 添加文件夹输入区域
+                HorizontalBox {
+                    spacing: 8px;
+                    LineEdit {
+                        text <=> new_exclude_folder;
+                        placeholder-text: i18n.exclude_placeholder;
+                        horizontal-stretch: 1;
+                    }
+
+                    Button {
+                        text: i18n.exclude_add;
+                        primary: true;
+                        clicked => {
+                            add_exclude_folder();
+                        }
+                    }
+
+                    Button {
+                        text: "📁";
+                        clicked => {
+                            browse_exclude_folder();
+                        }
+                    }
+                }
+                
+                // 已添加的文件夹列表（标签样式）
+                ScrollView {
+                    vertical-stretch: 1;
+                    VerticalBox {
+                        spacing: 8px;
+                        padding: 8px;
+                        for folder[index] in exclude_folders: Rectangle {
+                            height: 36px;
+                            border-radius: 6px;
+                            background: Palette.accent-background;
+                            HorizontalBox {
+                                padding-left: 12px;
+                                padding-right: 8px;
+                                spacing: 8px;
+                                Text {
+                                    text: folder;
+                                    vertical-alignment: center;
+                                    horizontal-stretch: 1;
+                                }
+
+                                Button {
+                                    text: "✕";
+                                    width: 28px;
+                                    height: 28px;
+                                    clicked => {
+                                        remove_exclude_folder(index);
+                                    }
+                                }
+                            }
+                        }
+                        if exclude_folders.length == 0: Text {
+                            text: "暂无屏蔽文件夹";
+                            color: Palette.foreground.transparentize(0.5);
+                            horizontal-alignment: center;
+                            vertical-alignment: center;
+                        }
+                    }
+                }
+                
+                // 按钮区
+                HorizontalBox {
+                    spacing: 12px;
+                    Rectangle {
+                        horizontal-stretch: 1;
+                    }
+
+                    Button {
+                        text: i18n.stats_close;
+                        primary: true;
+                        clicked => {
+                            show_exclude_popup = false;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ========================================================================
+    // 关于应用弹窗
+    // ========================================================================
+    if show_about_popup: Rectangle {
+        x: 0;
+        y: 0;
+        width: 100%;
+        height: 100%;
+        background: #00000080;
+        Rectangle {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            width: 480px;
+            border-radius: 12px;
+            background: Palette.background;
+            drop-shadow-blur: 20px;
+            drop-shadow-color: #00000040;
+            
+            VerticalBox {
+                padding: 24px;
+                spacing: 20px;
+                
+                // 标题
+                Text {
+                    text: i18n.about_title;
+                    font-size: 20px;
+                    font-weight: 700;
+                    horizontal-alignment: center;
+                }
+                
+                Rectangle {
+                    height: 1px;
+                    background: Palette.border;
+                }
+                
+                // 应用图标（占位）
+                Rectangle {
+                    height: 80px;
+                    HorizontalBox {
+                        alignment: center;
+                        Text {
+                            text: "🎬";
+                            font-size: 64px;
+                        }
+                    }
+                }
+                
+                // 版本信息
+                Text {
+                    text: i18n.about_version;
+                    font-size: 14px;
+                    horizontal-alignment: center;
+                    color: Palette.foreground.transparentize(0.3);
+                }
+                
+                // 应用描述
+                Text {
+                    text: i18n.about_description;
+                    font-size: 14px;
+                    horizontal-alignment: center;
+                    wrap: word-wrap;
+                }
+                
+                // 作者信息
+                Text {
+                    text: i18n.about_author;
+                    font-size: 14px;
+                    horizontal-alignment: center;
+                }
+                
+                Rectangle {
+                    height: 1px;
+                    background: Palette.border;
+                }
+                
+                // 支持信息
+                Text {
+                    text: i18n.about_support;
+                    font-size: 13px;
+                    horizontal-alignment: center;
+                    color: Palette.foreground.transparentize(0.3);
+                }
+                
+                // 收款码图片
+                Image {
+                    source: @image-url("../../../assets/alipay.jpg");
+                    width: 200px;
+                    height: 200px;
+                    image-fit: contain;
+                }
+                
+                // 关闭按钮
+                Button {
+                    text: i18n.stats_close;
+                    primary: true;
+                    clicked => {
+                        show_about_popup = false;
+                    }
+                }
+            }
+        }
+    }
+}
