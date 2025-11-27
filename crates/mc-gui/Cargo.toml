@@ -17,4 +17,4 @@ anyhow.workspace = true
 log.workspace = true
 
 [build-dependencies]
-slint-build = "1.8"
+slint-build.workspace = true

@@ -31,6 +31,7 @@ comfy-table = "7.1"
 
 # GUI dependencies
 slint = "1.8"
+slint-build = "1.8"
 
 # Dev dependencies
 tempfile = "3"
