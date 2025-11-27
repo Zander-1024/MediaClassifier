@@ -91,6 +91,9 @@ export struct I18nStrings {
     theme_auto: string,
     theme_light: string,
     theme_dark: string,
+    // 语言
+    lang_zh: string,
+    lang_en: string,
 }
 
 // ============================================================================
@@ -142,6 +145,9 @@ export component MainWindow inherits Window {
     // 主题
     in-out property <ThemeMode> theme_mode: ThemeMode.Auto;
     
+    // 当前语言
+    in-out property <string> current_language: "zh";
+    
     // i18n 字符串
     in-out property <I18nStrings> i18n: {
         app_title: "🎬 MediaClassifier",
@@ -175,6 +181,8 @@ export component MainWindow inherits Window {
         theme_auto: "自动",
         theme_light: "浅色",
         theme_dark: "深色",
+        lang_zh: "中文",
+        lang_en: "EN",
     };
 
     // ========================================================================
@@ -220,6 +228,24 @@ export component MainWindow inherits Window {
                 }
                 
                 Rectangle { horizontal-stretch: 1; }
+                
+                // 语言切换
+                HorizontalBox {
+                    spacing: 4px;
+                    
+                    Button {
+                        text: i18n.lang_zh;
+                        checkable: true;
+                        checked: current_language == "zh";
+                        clicked => { change_language("zh"); }
+                    }
+                    Button {
+                        text: i18n.lang_en;
+                        checkable: true;
+                        checked: current_language == "en";
+                        clicked => { change_language("en"); }
+                    }
+                }
                 
                 // 主题选择
                 HorizontalBox {
