@@ -22,6 +22,9 @@ fn get_zh_strings() -> I18nStrings {
         show_details: "显示详情".into(),
         hide_details: "隐藏详情".into(),
         progress_label: "处理进度".into(),
+        log_error_dir_not_exist: "❌ 错误: 目录不存在".into(),
+        log_scanning: "🔍 开始扫描文件...".into(),
+        log_processing: "📁 处理:".into(),
         stats_title: "📊 处理完成".into(),
         stats_total: "总计".into(),
         stats_success: "成功".into(),
@@ -61,6 +64,9 @@ fn get_en_strings() -> I18nStrings {
         show_details: "Show Details".into(),
         hide_details: "Hide Details".into(),
         progress_label: "Progress".into(),
+        log_error_dir_not_exist: "❌ Error: Directory does not exist".into(),
+        log_scanning: "🔍 Scanning files...".into(),
+        log_processing: "📁 Processing:".into(),
         stats_title: "📊 Completed".into(),
         stats_total: "Total".into(),
         stats_success: "Success".into(),
@@ -187,13 +193,19 @@ fn main() -> anyhow::Result<()> {
 
             let target_dir = PathBuf::from(&working_dir);
             if !target_dir.exists() || !target_dir.is_dir() {
-                window.set_log_content("错误: 目录不存在\n".into());
+                let i18n = window.get_i18n();
+                window.set_log_content(format!("{}\n", i18n.log_error_dir_not_exist).into());
                 return;
             }
 
+            // Get i18n strings before spawning thread
+            let i18n = window.get_i18n();
+            let log_scanning = i18n.log_scanning.to_string();
+            let log_processing = i18n.log_processing.to_string();
+
             window.set_app_state(AppState::Working);
             window.set_progress(0.0);
-            window.set_log_content("开始扫描文件...\n".into());
+            window.set_log_content(format!("{}\n", log_scanning).into());
 
             // 在新线程中处理文件
             let window_weak_thread = window_weak.clone();
@@ -220,7 +232,7 @@ fn main() -> anyhow::Result<()> {
 
                 for (idx, file) in files.iter().enumerate() {
                     let progress = (idx + 1) as f32 / total as f32;
-                    let log_entry = format!("处理: {}\n", file.display());
+                    let log_entry = format!("{} {}\n", log_processing, file.display());
 
                     // 更新 UI
                     let window_weak_ui = window_weak_thread.clone();

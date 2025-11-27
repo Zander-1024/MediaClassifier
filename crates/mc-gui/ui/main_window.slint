@@ -63,6 +63,10 @@ export struct I18nStrings {
     hide_details: string,
     // 进度
     progress_label: string,
+    // 日志消息
+    log_error_dir_not_exist: string,
+    log_scanning: string,
+    log_processing: string,
     // 统计弹窗
     stats_title: string,
     stats_total: string,
@@ -157,6 +161,9 @@ export component MainWindow inherits Window {
         show_details: "显示详情",
         hide_details: "隐藏详情",
         progress_label: "处理进度",
+        log_error_dir_not_exist: "❌ 错误: 目录不存在",
+        log_scanning: "🔍 开始扫描文件...",
+        log_processing: "📁 处理:",
         stats_title: "📊 处理完成",
         stats_total: "总计",
         stats_success: "成功",
