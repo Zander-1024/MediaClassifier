@@ -137,13 +137,11 @@ fn get_en_strings() -> I18nStrings {
 
 /// 加载配置文件
 fn load_config() -> Config {
-    if let Ok(config_path) = Config::default_config_path() {
-        if Config::ensure_config_exists(&config_path).is_ok() {
-            if let Ok(config) = Config::load(&config_path) {
+    if let Ok(config_path) = Config::default_config_path()
+        && Config::ensure_config_exists(&config_path).is_ok()
+            && let Ok(config) = Config::load(&config_path) {
                 return config;
             }
-        }
-    }
     Config::default()
 }
 
@@ -689,13 +687,11 @@ fn main() -> anyhow::Result<()> {
     // 浏览选择屏蔽文件夹
     let main_window_weak = main_window.as_weak();
     main_window.on_browse_exclude_folder(move || {
-        if let Some(window) = main_window_weak.upgrade() {
-            if let Some(folder) = rfd::FileDialog::new().pick_folder() {
-                if let Some(folder_name) = folder.file_name() {
+        if let Some(window) = main_window_weak.upgrade()
+            && let Some(folder) = rfd::FileDialog::new().pick_folder()
+                && let Some(folder_name) = folder.file_name() {
                     window.set_new_exclude_folder(folder_name.to_string_lossy().to_string().into());
                 }
-            }
-        }
     });
 
     // ========================================================================
