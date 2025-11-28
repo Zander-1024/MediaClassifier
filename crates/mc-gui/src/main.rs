@@ -66,17 +66,24 @@ fn open_github_url() {
     let url = "https://github.com/Zander-1024/MediaClassifier";
     #[cfg(target_os = "linux")]
     {
-        let _ = std::process::Command::new("xdg-open").arg(url).spawn();
+        if let Err(e) = std::process::Command::new("xdg-open").arg(url).spawn() {
+            log::warn!("Failed to open URL: {}", e);
+        }
     }
     #[cfg(target_os = "macos")]
     {
-        let _ = std::process::Command::new("open").arg(url).spawn();
+        if let Err(e) = std::process::Command::new("open").arg(url).spawn() {
+            log::warn!("Failed to open URL: {}", e);
+        }
     }
     #[cfg(target_os = "windows")]
     {
-        let _ = std::process::Command::new("cmd")
+        if let Err(e) = std::process::Command::new("cmd")
             .args(["/c", "start", url])
-            .spawn();
+            .spawn()
+        {
+            log::warn!("Failed to open URL: {}", e);
+        }
     }
 }
 
@@ -128,13 +135,14 @@ fn main() -> anyhow::Result<()> {
 
             let target_dir = PathBuf::from(&working_dir);
             if !target_dir.exists() || !target_dir.is_dir() {
-                window.set_log_content("❌ 错误: 目录不存在\n".into());
+                // Note: Log messages are not localized as they are for file processing output
+                window.set_log_content("❌ Error: Directory does not exist\n".into());
                 return;
             }
 
             window.set_app_state(AppState::Working);
             window.set_progress(0.0);
-            window.set_log_content("🔍 开始扫描文件...\n".into());
+            window.set_log_content("🔍 Scanning files...\n".into());
 
             // 在新线程中处理文件
             let window_weak_thread = window_weak.clone();
