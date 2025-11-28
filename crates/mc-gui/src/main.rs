@@ -239,7 +239,6 @@ fn main() -> anyhow::Result<()> {
             // Get i18n strings before spawning thread
             let i18n = window.get_i18n();
             let log_scanning = i18n.log_scanning.to_string();
-            let log_processing = i18n.log_processing.to_string();
 
             window.set_app_state(AppState::Working);
             window.set_progress(0.0);
@@ -270,17 +269,12 @@ fn main() -> anyhow::Result<()> {
 
                 for (idx, file) in files.iter().enumerate() {
                     let progress = (idx + 1) as f32 / total as f32;
-                    let log_entry = format!("{} {}\n", log_processing, file.display());
 
-                    // 更新 UI
+                    // 更新 UI 进度
                     let window_weak_ui = window_weak_thread.clone();
-                    let progress_val = progress;
-                    let log_text = log_entry.clone();
                     slint::invoke_from_event_loop(move || {
                         if let Some(window) = window_weak_ui.upgrade() {
-                            window.set_progress(progress_val);
-                            let current_log = window.get_log_content().to_string();
-                            window.set_log_content((current_log + &log_text).into());
+                            window.set_progress(progress);
                         }
                     })
                     .ok();
@@ -289,7 +283,7 @@ fn main() -> anyhow::Result<()> {
                     match classify_file_with_config(&config_guard, &target_dir, file) {
                         Ok(ClassifyResult::Success { from, to }) => {
                             success += 1;
-                            let msg = format!("✅ {} -> {}\n", from.display(), to.display());
+                            let msg = format!("[SUCCESS] {} -> {}\n", from.display(), to.display());
                             let window_weak_ui = window_weak_thread.clone();
                             slint::invoke_from_event_loop(move || {
                                 if let Some(window) = window_weak_ui.upgrade() {
@@ -299,12 +293,22 @@ fn main() -> anyhow::Result<()> {
                             })
                             .ok();
                         },
-                        Ok(ClassifyResult::Skipped { .. }) => {
+                        Ok(ClassifyResult::Skipped { path, reason }) => {
                             skipped += 1;
+                            let msg =
+                                format!("[SKIPPED] {} | Reason: {}\n", path.display(), reason);
+                            let window_weak_ui = window_weak_thread.clone();
+                            slint::invoke_from_event_loop(move || {
+                                if let Some(window) = window_weak_ui.upgrade() {
+                                    let current_log = window.get_log_content().to_string();
+                                    window.set_log_content((current_log + &msg).into());
+                                }
+                            })
+                            .ok();
                         },
                         Ok(ClassifyResult::Renamed { from, to }) => {
                             renamed += 1;
-                            let msg = format!("🔄 {} -> {}\n", from.display(), to.display());
+                            let msg = format!("[RENAMED] {} -> {}\n", from.display(), to.display());
                             let window_weak_ui = window_weak_thread.clone();
                             slint::invoke_from_event_loop(move || {
                                 if let Some(window) = window_weak_ui.upgrade() {
@@ -316,7 +320,7 @@ fn main() -> anyhow::Result<()> {
                         },
                         Ok(ClassifyResult::Failed { path, error }) => {
                             failed += 1;
-                            let msg = format!("❌ {}: {}\n", path.display(), error);
+                            let msg = format!("[FAILED] {} | Error: {}\n", path.display(), error);
                             let window_weak_ui = window_weak_thread.clone();
                             slint::invoke_from_event_loop(move || {
                                 if let Some(window) = window_weak_ui.upgrade() {
@@ -328,7 +332,7 @@ fn main() -> anyhow::Result<()> {
                         },
                         Err(e) => {
                             failed += 1;
-                            let msg = format!("❌ {}: {}\n", file.display(), e);
+                            let msg = format!("[ERROR] {} | {}\n", file.display(), e);
                             let window_weak_ui = window_weak_thread.clone();
                             slint::invoke_from_event_loop(move || {
                                 if let Some(window) = window_weak_ui.upgrade() {

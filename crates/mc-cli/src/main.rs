@@ -3,14 +3,15 @@ mod config_display;
 use anyhow::{Context, Result};
 use clap::Parser;
 use config_display::show_config;
-use log::{error, info};
+use log::info;
 use mc_lib::{
     ClassifyResult, Config, FileFilter, classify_file_with_config, get_media_info,
     remove_empty_dirs,
 };
 use simplelog::*;
 use std::fs::File;
-use std::path::PathBuf;
+use std::io::{Write, stdout};
+use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
 #[derive(Parser)]
@@ -51,7 +52,7 @@ impl Statistics {
         Self::default()
     }
 
-    fn record(&mut self, result: ClassifyResult) {
+    fn record(&mut self, result: &ClassifyResult) {
         match result {
             ClassifyResult::Success { .. } => self.success += 1,
             ClassifyResult::Skipped { .. } => self.skipped += 1,
@@ -78,6 +79,11 @@ impl Statistics {
     fn total(&self) -> usize {
         self.success + self.skipped + self.renamed + self.failed
     }
+}
+
+/// 获取日志文件的绝对路径
+fn get_log_file_path(target_dir: &Path) -> PathBuf {
+    target_dir.join("classifier.log")
 }
 
 fn main() -> Result<()> {
@@ -113,14 +119,6 @@ fn main() -> Result<()> {
         return Ok(());
     }
 
-    // 初始化日志系统
-    init_logger()?;
-
-    info!("MediaClassifier started");
-    info!("Using config: {:?}", config_path);
-    println!("🚀 MediaClassifier - Organizing your media files...\n");
-    println!("📋 Config: {}\n", config_path.display());
-
     // 获取目标目录
     let target_dir = if args.dir.is_empty() || args.dir == "." {
         std::env::current_dir().context("Failed to get current directory")?
@@ -128,100 +126,108 @@ fn main() -> Result<()> {
         PathBuf::from(&args.dir)
     };
 
+    // 初始化日志系统
+    let log_path = get_log_file_path(&target_dir);
+    init_logger(&log_path)?;
+
+    info!("MediaClassifier started");
+    info!("Using config: {:?}", config_path);
+    println!("🚀 MediaClassifier - Organizing your media files...\n");
+    println!("📋 Config: {}\n", config_path.display());
+
     info!("Working directory: {:?}", target_dir);
     println!("📁 Working directory: {}\n", target_dir.display());
 
     // 扫描并收集所有媒体文件
-    println!("🔍 Scanning for media files...");
-    let media_files = scan_media_files(&target_dir, &config)?;
+    print!("🔍 Scanning for media files...");
+    stdout().flush().ok();
+    let (media_files, skipped_dirs) = scan_media_files(&target_dir, &config)?;
 
     if media_files.is_empty() {
+        println!(" Done");
         println!("ℹ️  No media files found in the current directory.");
         info!("No media files found");
         return Ok(());
     }
 
-    println!("📋 Found {} media files\n", media_files.len());
+    println!(" Found {} files", media_files.len());
     info!("Found {} media files", media_files.len());
 
+    // 记录跳过的目录到日志
+    if !skipped_dirs.is_empty() {
+        info!("Skipped directories:");
+        for dir in &skipped_dirs {
+            info!("  [SKIP DIR] {}", dir.display());
+        }
+    }
+
     // 处理每个文件
-    println!("⚙️  Processing files...\n");
+    println!("⚙️  Processing files...");
     let mut stats = Statistics::new();
+    let total = media_files.len();
 
     for (index, file) in media_files.iter().enumerate() {
-        let progress = format!("[{}/{}]", index + 1, media_files.len());
+        // 在终端显示进度（覆盖同一行）
+        print!("\r⚙️  Processing: [{}/{}]", index + 1, total);
+        stdout().flush().ok();
 
         match classify_file_with_config(&config, &target_dir, file) {
             Ok(result) => {
-                match &result {
-                    ClassifyResult::Success { from, to } => {
-                        println!(
-                            "{} ✅ Moved: {} → {}",
-                            progress,
-                            from.file_name().unwrap().to_string_lossy(),
-                            to.strip_prefix(&target_dir).unwrap_or(to).display()
-                        );
-                    },
-                    ClassifyResult::Renamed { from, to, .. } => {
-                        println!(
-                            "{} 🔄 Renamed: {} → {}",
-                            progress,
-                            from.file_name().unwrap().to_string_lossy(),
-                            to.strip_prefix(&target_dir).unwrap_or(to).display()
-                        );
-                    },
-                    ClassifyResult::Skipped { path, .. } => {
-                        println!(
-                            "{} ⏭️  Skipped: {} (already exists)",
-                            progress,
-                            path.file_name().unwrap().to_string_lossy()
-                        );
-                    },
-                    ClassifyResult::Failed { path, error } => {
-                        println!(
-                            "{} ❌ Failed: {} - {}",
-                            progress,
-                            path.file_name().unwrap().to_string_lossy(),
-                            error
-                        );
-                    },
-                }
-                stats.record(result);
+                // 记录详细日志到文件
+                log_result(&result);
+                stats.record(&result);
             },
             Err(e) => {
-                error!("Error processing {:?}: {}", file, e);
-                println!(
-                    "{} ❌ Error: {} - {}",
-                    progress,
-                    file.file_name().unwrap().to_string_lossy(),
-                    e
-                );
+                info!("[ERROR] {} -> {}", file.display(), e);
                 stats.failed += 1;
             },
         }
     }
+
+    // 清除进度行并打印完成信息
+    print!("\r⚙️  Processing: [{}/{}] ✓\n", total, total);
+
     // 使用配置或命令行参数决定是否清理空目录
     let should_clean = args.clean.unwrap_or(config.global.clean_empty_dirs);
     if should_clean {
-        println!("\n🧹 Cleaning up empty directories...\n");
+        println!("🧹 Cleaning up empty directories...");
         remove_empty_dirs(&target_dir)?;
     }
 
     // 打印统计信息
     stats.print_summary();
 
-    println!("📝 Detailed logs saved to: classifier.log");
+    // 显示日志文件路径
+    println!("📝 Detailed logs saved to: {}", log_path.display());
     println!("✨ Done!\n");
 
     Ok(())
 }
 
+/// 记录分类结果到日志文件
+fn log_result(result: &ClassifyResult) {
+    match result {
+        ClassifyResult::Success { from, to } => {
+            info!("[SUCCESS] {} -> {}", from.display(), to.display());
+        },
+        ClassifyResult::Renamed { from, to } => {
+            info!("[RENAMED] {} -> {}", from.display(), to.display());
+        },
+        ClassifyResult::Skipped { path, reason } => {
+            info!("[SKIPPED] {} | Reason: {}", path.display(), reason);
+        },
+        ClassifyResult::Failed { path, error } => {
+            info!("[FAILED] {} | Error: {}", path.display(), error);
+        },
+    }
+}
+
 /// 初始化日志系统
-fn init_logger() -> Result<()> {
+fn init_logger(log_path: &PathBuf) -> Result<()> {
     CombinedLogger::init(vec![WriteLogger::new(
         LevelFilter::Info,
         simplelog::Config::default(),
-        File::create("classifier.log").context("Failed to create log file")?,
+        File::create(log_path).context("Failed to create log file")?,
     )])
     .context("Failed to initialize logger")?;
 
@@ -229,13 +235,28 @@ fn init_logger() -> Result<()> {
 }
 
 /// 扫描目录中的所有媒体文件
-fn scan_media_files(dir: &PathBuf, config: &Config) -> Result<Vec<PathBuf>> {
+/// 返回 (媒体文件列表, 跳过的目录列表)
+fn scan_media_files(dir: &PathBuf, config: &Config) -> Result<(Vec<PathBuf>, Vec<PathBuf>)> {
     let mut media_files = Vec::new();
+    let mut skipped_dirs = Vec::new();
     let filter = FileFilter::new(&config.exclude);
 
+    // 首先收集被跳过的目录
     for entry in WalkDir::new(dir)
-        .min_depth(1) // 跳过根目录本身
-        .max_depth(9) // 限制递归深度，避免扫描太深
+        .min_depth(1)
+        .max_depth(9)
+        .into_iter()
+        .flatten()
+    {
+        if entry.file_type().is_dir() && filter.should_exclude_entry(&entry) {
+            skipped_dirs.push(entry.into_path());
+        }
+    }
+
+    // 收集媒体文件
+    for entry in WalkDir::new(dir)
+        .min_depth(1)
+        .max_depth(9)
         .into_iter()
         .filter_entry(|e| !filter.should_exclude_entry(e))
     {
@@ -254,5 +275,5 @@ fn scan_media_files(dir: &PathBuf, config: &Config) -> Result<Vec<PathBuf>> {
         }
     }
 
-    Ok(media_files)
+    Ok((media_files, skipped_dirs))
 }
