@@ -1,6 +1,6 @@
 // MediaClassifier GUI - Main Window
 // 使用 Slint 构建的媒体文件分类工具图形界面
-// 支持 i18n、主题切换、多页面导航
+// 支持 i18n（使用 @tr() 宏）、主题切换、多页面导航
 
 import {
     Button,
@@ -62,87 +62,15 @@ export enum ThemeMode {
 }
 
 // ============================================================================
-// i18n 字符串结构
-// ============================================================================
-export struct I18nStrings {
-    // 通用
-    app_title: string,
-    // 主页面
-    working_directory: string,
-    select_directory: string,
-    start_working: string,
-    show_details: string,
-    hide_details: string,
-    // 进度
-    progress_label: string,
-    // 日志消息
-    log_error_dir_not_exist: string,
-    log_scanning: string,
-    log_processing: string,
-    // 统计弹窗
-    stats_title: string,
-    stats_total: string,
-    stats_success: string,
-    stats_renamed: string,
-    stats_skipped: string,
-    stats_failed: string,
-    stats_close: string,
-    // 配置页面
-    config_title: string,
-    config_add: string,
-    config_exclude: string,
-    config_back: string,
-    config_rule_name: string,
-    config_rule_desc: string,
-    config_rule_ext: string,
-    config_rule_template: string,
-    config_rule_min_size: string,
-    config_rule_max_size: string,
-    config_rule_enabled: string,
-    config_edit: string,
-    config_delete: string,
-    config_save: string,
-    config_cancel: string,
-    // 导航
-    nav_config: string,
-    nav_main: string,
-    // 主题
-    theme_auto: string,
-    theme_light: string,
-    theme_dark: string,
-    // 语言
-    lang_zh: string,
-    lang_en: string,
-    // Placeholder
-    placeholder_select_folder: string,
-    placeholder_ext_example: string,
-    placeholder_template_example: string,
-    placeholder_min_size: string,
-    placeholder_max_size: string,
-    // 状态
-    status_processing: string,
-    // 屏蔽文件夹
-    exclude_title: string,
-    exclude_add: string,
-    exclude_add_folder: string,
-    exclude_placeholder: string,
-    // 关于应用
-    about_title: string,
-    about_version: string,
-    about_description: string,
-    about_author: string,
-    about_support: string,
-}
-
-// ============================================================================
 // 主窗口组件
 // ============================================================================
 export component MainWindow inherits Window {
     title: "MediaClassifier";
-    min-width: 800px;
-    min-height: 600px;
-    preferred-width: 900px;
-    preferred-height: 700px;
+    // Task 4: 应用尺寸缩小一些
+    min-width: 700px;
+    min-height: 500px;
+    preferred-width: 750px;
+    preferred-height: 550px;
     background: Palette.background;
 
     // ========================================================================
@@ -193,66 +121,8 @@ export component MainWindow inherits Window {
     // 关于应用
     in-out property <bool> show_about_popup: false;
     
-    // 当前语言
-    in-out property <string> current_language: "zh";
-    
-    // i18n 字符串
-    in-out property <I18nStrings> i18n: {
-        app_title: "🎬 MediaClassifier",
-        working_directory: "工作目录",
-        select_directory: "选择工作目录",
-        start_working: "开始工作",
-        show_details: "显示详情",
-        hide_details: "隐藏详情",
-        progress_label: "处理进度",
-        log_error_dir_not_exist: "❌ 错误: 目录不存在",
-        log_scanning: "🔍 开始扫描文件...",
-        log_processing: "📁 处理:",
-        stats_title: "📊 处理完成",
-        stats_total: "总计",
-        stats_success: "成功",
-        stats_renamed: "重命名",
-        stats_skipped: "跳过",
-        stats_failed: "失败",
-        stats_close: "关闭",
-        config_title: "⚙️ 配置管理",
-        config_add: "➕ 新增规则",
-        config_exclude: "🚫 屏蔽文件夹",
-        config_back: "← 返回主页",
-        config_rule_name: "规则名称",
-        config_rule_desc: "规则描述",
-        config_rule_ext: "文件扩展名",
-        config_rule_template: "目录模板",
-        config_rule_min_size: "最小大小",
-        config_rule_max_size: "最大大小",
-        config_rule_enabled: "启用",
-        config_edit: "编辑",
-        config_delete: "删除",
-        config_save: "保存",
-        config_cancel: "取消",
-        nav_config: "⚙️",
-        nav_main: "🏠",
-        theme_auto: "自动",
-        theme_light: "浅色",
-        theme_dark: "深色",
-        lang_zh: "中文",
-        lang_en: "EN",
-        placeholder_select_folder: "点击选择文件夹...",
-        placeholder_ext_example: "jpg,png,gif",
-        placeholder_template_example: "{ext}/{date}",
-        placeholder_min_size: "0B",
-        placeholder_max_size: "无限制",
-        status_processing: "⏳ 处理中...",
-        exclude_title: "🚫 屏蔽文件夹管理",
-        exclude_add: "添加",
-        exclude_add_folder: "+ 添加文件夹",
-        exclude_placeholder: "输入文件夹名称（如：.git, node_modules）",
-        about_title: "🎞️ 关于 MediaClassifier",
-        about_version: "版本：v1.2.0",
-        about_description: "一款基于规则的媒体文件自动分类工具，支持自定义目录模板、文件大小过滤等功能。",
-        about_author: "作者：Zander",
-        about_support: "如果您觉得这个工具有用，欢迎支持：",
-    };
+    // Task 3: 捐赠弹窗控制
+    in-out property <bool> show_donate_popup: false;
 
     // ========================================================================
     // 回调
@@ -274,7 +144,8 @@ export component MainWindow inherits Window {
     callback browse_exclude_folder();
     callback show_about();
     callback change_theme(ThemeMode);
-    callback change_language(string);
+    // Task 2: 添加打开 GitHub 链接的回调
+    callback open_github();
     
     // 当主题改变时更新 Palette
     changed theme_mode => {
@@ -296,16 +167,16 @@ export component MainWindow inherits Window {
 
         // 顶部导航栏
         Rectangle {
-            height: 68px;
+            height: 56px;
             background: Palette.background.darker(0.05);
             HorizontalBox {
                 padding-left: 16px;
                 padding-right: 16px;
                 spacing: 12px;
                 
-                // 应用标题
+                // 应用标题 - 使用 @tr() 宏
                 Text {
-                    text: i18n.app_title;
+                    text: @tr("🎬 MediaClassifier");
                     font-size: 18px;
                     font-weight: 600;
                     color: Palette.foreground;
@@ -316,25 +187,11 @@ export component MainWindow inherits Window {
                     horizontal-stretch: 1;
                 }
                 
-                // 语言切换按钮
-                Button {
-                    text: current_language == "zh" ? "zh" : "en";
-                    width: 48px;
-                    height: 48px;
-                    clicked => {
-                        if current_language == "zh" {
-                            change_language("en");
-                        } else {
-                            change_language("zh");
-                        }
-                    }
-                }
-                
                 // 主题切换按钮
                 Button {
                     text: theme_mode == ThemeMode.Light ? "☀️" : (theme_mode == ThemeMode.Dark ? "🌙" : "🔆");
-                    width: 48px;
-                    height: 48px;
+                    width: 40px;
+                    height: 40px;
                     clicked => {
                         if theme_mode == ThemeMode.Auto {
                             change_theme(ThemeMode.Light);
@@ -349,8 +206,8 @@ export component MainWindow inherits Window {
                 // 关于按钮
                 Button {
                     text: "ℹ️";
-                    width: 48px;
-                    height: 48px;
+                    width: 40px;
+                    height: 40px;
                     clicked => {
                         show_about();
                     }
@@ -358,9 +215,9 @@ export component MainWindow inherits Window {
                 
                 // 仅图标导航按钮
                 Button {
-                    text: current_page == PageType.Main ? i18n.nav_config : i18n.nav_main;
-                    width: 48px;
-                    height: 48px;
+                    text: current_page == PageType.Main ? "⚙️" : "🏠";
+                    width: 40px;
+                    height: 40px;
                     clicked => {
                         if current_page == PageType.Main {
                             go_to_config();
@@ -379,18 +236,18 @@ export component MainWindow inherits Window {
             
             // 主页面
             if current_page == PageType.Main: VerticalBox {
-                padding: 24px;
-                spacing: 20px;
+                padding: 20px;
+                spacing: 16px;
                 alignment: center;
                 
                 // 居中容器
                 VerticalBox {
-                    max-width: 600px;
-                    spacing: 20px;
+                    max-width: 500px;
+                    spacing: 16px;
                     
                     // 目录选择输入框
                     Rectangle {
-                        height: 56px;
+                        height: 48px;
                         border-radius: 8px;
                         border-width: 1px;
                         border-color: Palette.border;
@@ -402,7 +259,7 @@ export component MainWindow inherits Window {
                                 padding: 8px;
                                 dir-input := LineEdit {
                                     text <=> working_directory;
-                                    placeholder-text: i18n.placeholder_select_folder;
+                                    placeholder-text: @tr("点击选择文件夹...");
                                     enabled: app_state == AppState.Idle;
                                 }
                             }
@@ -422,10 +279,10 @@ export component MainWindow inherits Window {
                     
                     // 开始按钮
                     Button {
-                        text: working_directory == "" ? i18n.select_directory : app_state == AppState.Working ? i18n.status_processing : i18n.start_working;
+                        text: working_directory == "" ? @tr("选择工作目录") : app_state == AppState.Working ? @tr("⏳ 处理中...") : @tr("开始工作");
                         primary: working_directory != "";
                         enabled: app_state == AppState.Idle && working_directory != "";
-                        height: 56px;
+                        height: 48px;
                         clicked => {
                             start_work();
                         }
@@ -436,7 +293,7 @@ export component MainWindow inherits Window {
                         spacing: 12px;
                         HorizontalBox {
                             Text {
-                                text: i18n.progress_label;
+                                text: @tr("处理进度");
                                 font-weight: 500;
                                 color: Palette.foreground;
                                 vertical-alignment: center;
@@ -460,7 +317,7 @@ export component MainWindow inherits Window {
                         
                         // 详情按钮
                         Button {
-                            text: show_log ? i18n.hide_details : i18n.show_details;
+                            text: show_log ? @tr("隐藏详情") : @tr("显示详情");
                             clicked => {
                                 toggle_log();
                             }
@@ -469,7 +326,7 @@ export component MainWindow inherits Window {
                     
                     // 日志区域（可折叠）
                     if show_log && app_state == AppState.Working: Rectangle {
-                        height: 300px;
+                        height: 250px;
                         border-radius: 8px;
                         border-width: 1px;
                         border-color: Palette.border;
@@ -493,15 +350,15 @@ export component MainWindow inherits Window {
             
             // 配置页面
             if current_page == PageType.Config: VerticalBox {
-                padding: 24px;
-                spacing: 20px;
+                padding: 20px;
+                spacing: 16px;
                 
                 // 配置页面标题和按钮
                 HorizontalBox {
                     spacing: 12px;
                     Text {
-                        text: i18n.config_title;
-                        font-size: 20px;
+                        text: @tr("⚙️ 配置管理");
+                        font-size: 18px;
                         font-weight: 600;
                         color: Palette.foreground;
                         vertical-alignment: center;
@@ -512,14 +369,14 @@ export component MainWindow inherits Window {
                     }
 
                     Button {
-                        text: i18n.config_exclude;
+                        text: @tr("🚫 屏蔽文件夹");
                         clicked => {
                             manage_exclude_folders();
                         }
                     }
 
                     Button {
-                        text: i18n.config_add;
+                        text: @tr("➕ 新增规则");
                         primary: true;
                         clicked => {
                             add_rule();
@@ -539,35 +396,35 @@ export component MainWindow inherits Window {
                         
                         // 表头
                         Rectangle {
-                            height: 40px;
+                            height: 36px;
                             background: Palette.background.darker(0.05);
                             HorizontalBox {
                                 padding-left: 12px;
                                 padding-right: 12px;
                                 spacing: 8px;
                                 Text {
-                                    text: i18n.config_rule_name;
+                                    text: @tr("规则名称");
                                     font-weight: 600;
                                     width: 120px;
                                     vertical-alignment: center;
                                 }
 
                                 Text {
-                                    text: i18n.config_rule_ext;
+                                    text: @tr("文件扩展名");
                                     font-weight: 600;
                                     width: 100px;
                                     vertical-alignment: center;
                                 }
 
                                 Text {
-                                    text: i18n.config_rule_template;
+                                    text: @tr("目录模板");
                                     font-weight: 600;
                                     horizontal-stretch: 1;
                                     vertical-alignment: center;
                                 }
 
                                 Text {
-                                    text: i18n.config_rule_enabled;
+                                    text: @tr("启用");
                                     font-weight: 600;
                                     width: 60px;
                                     vertical-alignment: center;
@@ -575,7 +432,7 @@ export component MainWindow inherits Window {
 
                                 Text {
                                     text: "";
-                                    width: 120px;
+                                    width: 100px;
                                 }
                             }
                         }
@@ -587,7 +444,7 @@ export component MainWindow inherits Window {
                                 padding: 0px;
                                 spacing: 0px;
                                 for rule[idx] in rules: Rectangle {
-                                    height: 44px;
+                                    height: 40px;
                                     background: Math.mod(idx, 2) == 0 ? Palette.background : Palette.background.darker(0.02);
                                     HorizontalBox {
                                         padding-left: 12px;
@@ -623,19 +480,19 @@ export component MainWindow inherits Window {
                                         }
 
                                         HorizontalBox {
-                                            width: 120px;
+                                            width: 100px;
                                             spacing: 8px;
                                             alignment: center;
                                             
                                             Rectangle {
-                                                width: 32px;
-                                                height: 32px;
+                                                width: 28px;
+                                                height: 28px;
                                                 border-radius: 4px;
                                                 background: touch-edit.has-hover ? Palette.accent-background : transparent;
                                                 
                                                 Text {
                                                     text: "✏️";
-                                                    font-size: 18px;
+                                                    font-size: 16px;
                                                     vertical-alignment: center;
                                                     horizontal-alignment: center;
                                                 }
@@ -648,14 +505,14 @@ export component MainWindow inherits Window {
                                             }
 
                                             Rectangle {
-                                                width: 32px;
-                                                height: 32px;
+                                                width: 28px;
+                                                height: 28px;
                                                 border-radius: 4px;
                                                 background: touch-delete.has-hover ? Palette.accent-background : transparent;
                                                 
                                                 Text {
                                                     text: "🗑️";
-                                                    font-size: 18px;
+                                                    font-size: 16px;
                                                     vertical-alignment: center;
                                                     horizontal-alignment: center;
                                                 }
@@ -689,18 +546,18 @@ export component MainWindow inherits Window {
         Rectangle {
             x: (parent.width - self.width) / 2;
             y: (parent.height - self.height) / 2;
-            width: 400px;
-            height: 320px;
+            width: 360px;
+            height: 280px;
             border-radius: 12px;
             background: Palette.background;
             drop-shadow-blur: 20px;
             drop-shadow-color: #00000040;
             VerticalBox {
-                padding: 24px;
-                spacing: 16px;
+                padding: 20px;
+                spacing: 12px;
                 Text {
-                    text: i18n.stats_title;
-                    font-size: 20px;
+                    text: @tr("📊 处理完成");
+                    font-size: 18px;
                     font-weight: 600;
                     horizontal-alignment: center;
                 }
@@ -712,10 +569,10 @@ export component MainWindow inherits Window {
                 
                 // 统计项
                 VerticalBox {
-                    spacing: 12px;
+                    spacing: 10px;
                     HorizontalBox {
                         Text {
-                            text: i18n.stats_total + ":";
+                            text: @tr("总计") + ":";
                             horizontal-stretch: 1;
                         }
 
@@ -727,7 +584,7 @@ export component MainWindow inherits Window {
 
                     HorizontalBox {
                         Text {
-                            text: "✅ " + i18n.stats_success + ":";
+                            text: @tr("✅ 成功") + ":";
                             horizontal-stretch: 1;
                         }
 
@@ -740,7 +597,7 @@ export component MainWindow inherits Window {
 
                     HorizontalBox {
                         Text {
-                            text: "🔄 " + i18n.stats_renamed + ":";
+                            text: @tr("🔄 重命名") + ":";
                             horizontal-stretch: 1;
                         }
 
@@ -753,7 +610,7 @@ export component MainWindow inherits Window {
 
                     HorizontalBox {
                         Text {
-                            text: "⏭️ " + i18n.stats_skipped + ":";
+                            text: @tr("⏭️ 跳过") + ":";
                             horizontal-stretch: 1;
                         }
 
@@ -766,7 +623,7 @@ export component MainWindow inherits Window {
 
                     HorizontalBox {
                         Text {
-                            text: "❌ " + i18n.stats_failed + ":";
+                            text: @tr("❌ 失败") + ":";
                             horizontal-stretch: 1;
                         }
 
@@ -783,7 +640,7 @@ export component MainWindow inherits Window {
                 }
 
                 Button {
-                    text: i18n.stats_close;
+                    text: @tr("关闭");
                     primary: true;
                     horizontal-stretch: 1;
                     clicked => {
@@ -806,18 +663,18 @@ export component MainWindow inherits Window {
         Rectangle {
             x: (parent.width - self.width) / 2;
             y: (parent.height - self.height) / 2;
-            width: 500px;
-            height: 480px;
+            width: 450px;
+            height: 420px;
             border-radius: 12px;
             background: Palette.background;
             drop-shadow-blur: 20px;
             drop-shadow-color: #00000040;
             VerticalBox {
-                padding: 24px;
-                spacing: 16px;
+                padding: 20px;
+                spacing: 12px;
                 Text {
-                    text: is_editing_rule ? i18n.config_edit : i18n.config_add;
-                    font-size: 18px;
+                    text: is_editing_rule ? @tr("编辑规则") : @tr("➕ 新增规则");
+                    font-size: 16px;
                     font-weight: 600;
                 }
 
@@ -828,12 +685,12 @@ export component MainWindow inherits Window {
                 
                 // 表单字段
                 VerticalBox {
-                    spacing: 12px;
+                    spacing: 10px;
                     HorizontalBox {
                         spacing: 8px;
                         Text {
-                            text: i18n.config_rule_name + ":";
-                            width: 100px;
+                            text: @tr("规则名称") + ":";
+                            width: 90px;
                             vertical-alignment: center;
                         }
 
@@ -846,8 +703,8 @@ export component MainWindow inherits Window {
                     HorizontalBox {
                         spacing: 8px;
                         Text {
-                            text: i18n.config_rule_desc + ":";
-                            width: 100px;
+                            text: @tr("规则描述") + ":";
+                            width: 90px;
                             vertical-alignment: center;
                         }
 
@@ -860,14 +717,14 @@ export component MainWindow inherits Window {
                     HorizontalBox {
                         spacing: 8px;
                         Text {
-                            text: i18n.config_rule_ext + ":";
-                            width: 100px;
+                            text: @tr("文件扩展名") + ":";
+                            width: 90px;
                             vertical-alignment: center;
                         }
 
                         LineEdit {
                             text <=> new_rule_ext;
-                            placeholder-text: i18n.placeholder_ext_example;
+                            placeholder-text: "jpg,png,gif";
                             horizontal-stretch: 1;
                         }
                     }
@@ -875,14 +732,14 @@ export component MainWindow inherits Window {
                     HorizontalBox {
                         spacing: 8px;
                         Text {
-                            text: i18n.config_rule_template + ":";
-                            width: 100px;
+                            text: @tr("目录模板") + ":";
+                            width: 90px;
                             vertical-alignment: center;
                         }
 
                         LineEdit {
                             text <=> new_rule_template;
-                            placeholder-text: i18n.placeholder_template_example;
+                            placeholder-text: "{{ext}}/{{date}}";
                             horizontal-stretch: 1;
                         }
                     }
@@ -890,14 +747,14 @@ export component MainWindow inherits Window {
                     HorizontalBox {
                         spacing: 8px;
                         Text {
-                            text: i18n.config_rule_min_size + ":";
-                            width: 100px;
+                            text: @tr("最小大小") + ":";
+                            width: 90px;
                             vertical-alignment: center;
                         }
 
                         LineEdit {
                             text <=> new_rule_min_size;
-                            placeholder-text: i18n.placeholder_min_size;
+                            placeholder-text: "0B";
                             horizontal-stretch: 1;
                         }
                     }
@@ -905,14 +762,14 @@ export component MainWindow inherits Window {
                     HorizontalBox {
                         spacing: 8px;
                         Text {
-                            text: i18n.config_rule_max_size + ":";
-                            width: 100px;
+                            text: @tr("最大大小") + ":";
+                            width: 90px;
                             vertical-alignment: center;
                         }
 
                         LineEdit {
                             text <=> new_rule_max_size;
-                            placeholder-text: i18n.placeholder_max_size;
+                            placeholder-text: @tr("无限制");
                             horizontal-stretch: 1;
                         }
                     }
@@ -920,8 +777,8 @@ export component MainWindow inherits Window {
                     HorizontalBox {
                         spacing: 8px;
                         Text {
-                            text: i18n.config_rule_enabled + ":";
-                            width: 100px;
+                            text: @tr("启用") + ":";
+                            width: 90px;
                             vertical-alignment: center;
                         }
 
@@ -939,14 +796,14 @@ export component MainWindow inherits Window {
                     }
 
                     Button {
-                        text: i18n.config_cancel;
+                        text: @tr("取消");
                         clicked => {
                             cancel_add_rule();
                         }
                     }
 
                     Button {
-                        text: i18n.config_save;
+                        text: @tr("保存");
                         primary: true;
                         clicked => {
                             save_new_rule();
@@ -969,18 +826,18 @@ export component MainWindow inherits Window {
         Rectangle {
             x: (parent.width - self.width) / 2;
             y: (parent.height - self.height) / 2;
-            width: 500px;
-            height: 480px;
+            width: 450px;
+            height: 400px;
             border-radius: 12px;
             background: Palette.background;
             drop-shadow-blur: 20px;
             drop-shadow-color: #00000040;
             VerticalBox {
-                padding: 24px;
-                spacing: 16px;
+                padding: 20px;
+                spacing: 12px;
                 Text {
-                    text: i18n.exclude_title;
-                    font-size: 18px;
+                    text: @tr("🚫 屏蔽文件夹管理");
+                    font-size: 16px;
                     font-weight: 600;
                 }
 
@@ -994,12 +851,12 @@ export component MainWindow inherits Window {
                     spacing: 8px;
                     LineEdit {
                         text <=> new_exclude_folder;
-                        placeholder-text: i18n.exclude_placeholder;
+                        placeholder-text: @tr("输入文件夹名称（如：.git, node_modules）");
                         horizontal-stretch: 1;
                     }
 
                     Button {
-                        text: i18n.exclude_add;
+                        text: @tr("添加");
                         primary: true;
                         clicked => {
                             add_exclude_folder();
@@ -1018,10 +875,10 @@ export component MainWindow inherits Window {
                 ScrollView {
                     vertical-stretch: 1;
                     VerticalBox {
-                        spacing: 8px;
-                        padding: 8px;
+                        spacing: 6px;
+                        padding: 6px;
                         for folder[index] in exclude_folders: Rectangle {
-                            height: 36px;
+                            height: 32px;
                             border-radius: 6px;
                             background: Palette.accent-background;
                             HorizontalBox {
@@ -1036,8 +893,8 @@ export component MainWindow inherits Window {
 
                                 Button {
                                     text: "✕";
-                                    width: 28px;
-                                    height: 28px;
+                                    width: 24px;
+                                    height: 24px;
                                     clicked => {
                                         remove_exclude_folder(index);
                                     }
@@ -1045,7 +902,7 @@ export component MainWindow inherits Window {
                             }
                         }
                         if exclude_folders.length == 0: Text {
-                            text: "暂无屏蔽文件夹";
+                            text: @tr("暂无屏蔽文件夹");
                             color: Palette.foreground.transparentize(0.5);
                             horizontal-alignment: center;
                             vertical-alignment: center;
@@ -1061,7 +918,7 @@ export component MainWindow inherits Window {
                     }
 
                     Button {
-                        text: i18n.stats_close;
+                        text: @tr("关闭");
                         primary: true;
                         clicked => {
                             show_exclude_popup = false;
@@ -1073,7 +930,7 @@ export component MainWindow inherits Window {
     }
 
     // ========================================================================
-    // 关于应用弹窗
+    // 关于应用弹窗 - Task 2 & 3: 添加 GitHub 链接, 隐藏 Alipay, 添加捐赠按钮
     // ========================================================================
     if show_about_popup: Rectangle {
         x: 0;
@@ -1084,20 +941,20 @@ export component MainWindow inherits Window {
         Rectangle {
             x: (parent.width - self.width) / 2;
             y: (parent.height - self.height) / 2;
-            width: 480px;
+            width: 400px;
             border-radius: 12px;
             background: Palette.background;
             drop-shadow-blur: 20px;
             drop-shadow-color: #00000040;
             
             VerticalBox {
-                padding: 24px;
-                spacing: 20px;
+                padding: 20px;
+                spacing: 16px;
                 
                 // 标题
                 Text {
-                    text: i18n.about_title;
-                    font-size: 20px;
+                    text: @tr("🎞️ 关于 MediaClassifier");
+                    font-size: 18px;
                     font-weight: 700;
                     horizontal-alignment: center;
                 }
@@ -1107,39 +964,48 @@ export component MainWindow inherits Window {
                     background: Palette.border;
                 }
                 
-                // 应用图标（占位）
+                // 应用图标
                 Rectangle {
-                    height: 80px;
+                    height: 60px;
                     HorizontalBox {
                         alignment: center;
                         Text {
                             text: "🎬";
-                            font-size: 64px;
+                            font-size: 48px;
                         }
                     }
                 }
                 
                 // 版本信息
                 Text {
-                    text: i18n.about_version;
-                    font-size: 14px;
+                    text: @tr("版本：v1.3.0");
+                    font-size: 13px;
                     horizontal-alignment: center;
                     color: Palette.foreground.transparentize(0.3);
                 }
                 
                 // 应用描述
                 Text {
-                    text: i18n.about_description;
-                    font-size: 14px;
+                    text: @tr("一款基于规则的媒体文件自动分类工具，支持自定义目录模板、文件大小过滤等功能。");
+                    font-size: 13px;
                     horizontal-alignment: center;
                     wrap: word-wrap;
                 }
                 
                 // 作者信息
                 Text {
-                    text: i18n.about_author;
-                    font-size: 14px;
+                    text: @tr("作者：Zander");
+                    font-size: 13px;
                     horizontal-alignment: center;
+                }
+                
+                // Task 2: GitHub 链接按钮
+                Button {
+                    text: @tr("🔗 GitHub");
+                    horizontal-stretch: 1;
+                    clicked => {
+                        open_github();
+                    }
                 }
                 
                 Rectangle {
@@ -1147,28 +1013,79 @@ export component MainWindow inherits Window {
                     background: Palette.border;
                 }
                 
-                // 支持信息
+                // Task 3: 捐赠按钮（替代直接显示支付宝二维码）
+                Button {
+                    text: @tr("💝 支持作者");
+                    horizontal-stretch: 1;
+                    clicked => {
+                        show_donate_popup = true;
+                    }
+                }
+                
+                // 关闭按钮
+                Button {
+                    text: @tr("关闭");
+                    primary: true;
+                    clicked => {
+                        show_about_popup = false;
+                    }
+                }
+            }
+        }
+    }
+    
+    // ========================================================================
+    // Task 3: 捐赠弹窗 - 显示支付宝二维码
+    // ========================================================================
+    if show_donate_popup: Rectangle {
+        x: 0;
+        y: 0;
+        width: 100%;
+        height: 100%;
+        background: #00000080;
+        Rectangle {
+            x: (parent.width - self.width) / 2;
+            y: (parent.height - self.height) / 2;
+            width: 300px;
+            border-radius: 12px;
+            background: Palette.background;
+            drop-shadow-blur: 20px;
+            drop-shadow-color: #00000040;
+            
+            VerticalBox {
+                padding: 20px;
+                spacing: 16px;
+                
+                // 标题
                 Text {
-                    text: i18n.about_support;
-                    font-size: 13px;
+                    text: @tr("💝 支持作者");
+                    font-size: 16px;
+                    font-weight: 600;
+                    horizontal-alignment: center;
+                }
+                
+                // 提示信息
+                Text {
+                    text: @tr("如果您觉得这个工具有用，欢迎支持：");
+                    font-size: 12px;
                     horizontal-alignment: center;
                     color: Palette.foreground.transparentize(0.3);
                 }
                 
-                // 收款码图片
+                // 支付宝二维码
                 Image {
                     source: @image-url("../../../assets/alipay.jpg");
-                    width: 200px;
-                    height: 200px;
+                    width: 180px;
+                    height: 180px;
                     image-fit: contain;
                 }
                 
                 // 关闭按钮
                 Button {
-                    text: i18n.stats_close;
+                    text: @tr("关闭");
                     primary: true;
                     clicked => {
-                        show_about_popup = false;
+                        show_donate_popup = false;
                     }
                 }
             }

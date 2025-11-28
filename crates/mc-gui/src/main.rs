@@ -1,7 +1,7 @@
 //! MediaClassifier GUI Application
 //!
 //! 使用 Slint 构建的媒体文件分类工具图形界面
-//! 支持 i18n、主题切换、多页面导航
+//! 支持 i18n（使用 @tr() 宏）、主题切换、多页面导航
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
@@ -13,127 +13,6 @@ use mc_lib::{ClassifyResult, Config, FileFilter, classify_file_with_config};
 use walkdir::WalkDir;
 
 slint::include_modules!();
-
-/// 中文 i18n 字符串
-fn get_zh_strings() -> I18nStrings {
-    I18nStrings {
-        app_title: "🎬 媒体文件分类器".into(),
-        working_directory: "工作目录".into(),
-        select_directory: "选择工作目录".into(),
-        start_working: "开始工作".into(),
-        show_details: "显示详情".into(),
-        hide_details: "隐藏详情".into(),
-        progress_label: "处理进度".into(),
-        log_error_dir_not_exist: "❌ 错误: 目录不存在".into(),
-        log_scanning: "🔍 开始扫描文件...".into(),
-        log_processing: "📁 处理:".into(),
-        stats_title: "📊 处理完成".into(),
-        stats_total: "总计".into(),
-        stats_success: "成功".into(),
-        stats_renamed: "重命名".into(),
-        stats_skipped: "跳过".into(),
-        stats_failed: "失败".into(),
-        stats_close: "关闭".into(),
-        config_title: "⚙️ 配置管理".into(),
-        config_add: "➕ 新增规则".into(),
-        config_exclude: "🚫 屏蔽文件夹".into(),
-        config_back: "← 返回主页".into(),
-        config_rule_name: "规则名称".into(),
-        config_rule_desc: "规则描述".into(),
-        config_rule_ext: "文件扩展名".into(),
-        config_rule_template: "目录模板".into(),
-        config_rule_min_size: "最小大小".into(),
-        config_rule_max_size: "最大大小".into(),
-        config_rule_enabled: "启用".into(),
-        config_edit: "编辑".into(),
-        config_delete: "删除".into(),
-        config_save: "保存".into(),
-        config_cancel: "取消".into(),
-        nav_config: "⚙️".into(),
-        nav_main: "🏠".into(),
-        theme_auto: "自动".into(),
-        theme_light: "浅色".into(),
-        theme_dark: "深色".into(),
-        lang_zh: "中文".into(),
-        lang_en: "EN".into(),
-        placeholder_select_folder: "点击选择文件夹...".into(),
-        placeholder_ext_example: "jpg,png,gif".into(),
-        placeholder_template_example: "{ext}/{date}".into(),
-        placeholder_min_size: "0B".into(),
-        placeholder_max_size: "无限制".into(),
-        status_processing: "⏳ 处理中...".into(),
-        exclude_title: "🚫 屏蔽文件夹管理".into(),
-        exclude_add: "添加".into(),
-        exclude_add_folder: "+ 添加文件夹".into(),
-        exclude_placeholder: "输入文件夹名称（如：.git, node_modules）".into(),
-        about_title: "🎞️ 关于 MediaClassifier".into(),
-        about_version: "版本：v1.2.0".into(),
-        about_description:
-            "一款基于规则的媒体文件自动分类工具，支持自定义目录模板、文件大小过滤等功能。".into(),
-        about_author: "作者：Zander".into(),
-        about_support: "如果您觉得这个工具有用，欢迎支持：".into(),
-    }
-}
-
-/// 英文 i18n 字符串
-fn get_en_strings() -> I18nStrings {
-    I18nStrings {
-        app_title: "🎬 MediaClassifier".into(),
-        working_directory: "Working Directory".into(),
-        select_directory: "Select Directory".into(),
-        start_working: "Start".into(),
-        show_details: "Show Details".into(),
-        hide_details: "Hide Details".into(),
-        progress_label: "Progress".into(),
-        log_error_dir_not_exist: "❌ Error: Directory does not exist".into(),
-        log_scanning: "🔍 Scanning files...".into(),
-        log_processing: "📁 Processing:".into(),
-        stats_title: "📊 Completed".into(),
-        stats_total: "Total".into(),
-        stats_success: "Success".into(),
-        stats_renamed: "Renamed".into(),
-        stats_skipped: "Skipped".into(),
-        stats_failed: "Failed".into(),
-        stats_close: "Close".into(),
-        config_title: "⚙️ Configuration".into(),
-        config_add: "➕ Add Rule".into(),
-        config_exclude: "🚫 Exclude Folders".into(),
-        config_back: "← Back".into(),
-        config_rule_name: "Name".into(),
-        config_rule_desc: "Description".into(),
-        config_rule_ext: "Extensions".into(),
-        config_rule_template: "Template".into(),
-        config_rule_min_size: "Min Size".into(),
-        config_rule_max_size: "Max Size".into(),
-        config_rule_enabled: "Enabled".into(),
-        config_edit: "Edit".into(),
-        config_delete: "Delete".into(),
-        config_save: "Save".into(),
-        config_cancel: "Cancel".into(),
-        nav_config: "⚙️".into(),
-        nav_main: "🏠".into(),
-        theme_auto: "Auto".into(),
-        theme_light: "Light".into(),
-        theme_dark: "Dark".into(),
-        lang_zh: "中文".into(),
-        lang_en: "EN".into(),
-        placeholder_select_folder: "Click to select folder...".into(),
-        placeholder_ext_example: "jpg,png,gif".into(),
-        placeholder_template_example: "{ext}/{date}".into(),
-        placeholder_min_size: "0B".into(),
-        placeholder_max_size: "Unlimited".into(),
-        status_processing: "⏳ Processing...".into(),
-        exclude_title: "🚫 Manage Exclude Folders".into(),
-        exclude_add: "Add".into(),
-        exclude_add_folder: "+ Add Folder".into(),
-        exclude_placeholder: "Enter folder name (e.g., .git, node_modules)".into(),
-        about_title: "🎞️ About MediaClassifier".into(),
-        about_version: "Version: v1.2.0".into(),
-        about_description: "A rule-based media file auto-classification tool with custom directory templates, file size filtering, and more.".into(),
-        about_author: "Author: Zander".into(),
-        about_support: "If you find this tool useful, feel free to support:".into(),
-    }
-}
 
 /// 加载配置文件
 fn load_config() -> Config {
@@ -182,6 +61,32 @@ fn rules_to_gui(config: &Config) -> Vec<RuleItem> {
         .collect()
 }
 
+/// 打开 GitHub 页面
+fn open_github_url() {
+    let url = "https://github.com/Zander-1024/MediaClassifier";
+    #[cfg(target_os = "linux")]
+    {
+        if let Err(e) = std::process::Command::new("xdg-open").arg(url).spawn() {
+            log::warn!("Failed to open URL: {}", e);
+        }
+    }
+    #[cfg(target_os = "macos")]
+    {
+        if let Err(e) = std::process::Command::new("open").arg(url).spawn() {
+            log::warn!("Failed to open URL: {}", e);
+        }
+    }
+    #[cfg(target_os = "windows")]
+    {
+        if let Err(e) = std::process::Command::new("cmd")
+            .args(["/c", "start", url])
+            .spawn()
+        {
+            log::warn!("Failed to open URL: {}", e);
+        }
+    }
+}
+
 fn main() -> anyhow::Result<()> {
     // 初始化日志
     simplelog::TermLogger::init(
@@ -199,7 +104,6 @@ fn main() -> anyhow::Result<()> {
 
     // 设置默认值
     main_window.set_working_directory("".into());
-    main_window.set_current_language("zh".into());
 
     // ========================================================================
     // 浏览目录 - 使用 rfd 文件对话框
@@ -231,18 +135,14 @@ fn main() -> anyhow::Result<()> {
 
             let target_dir = PathBuf::from(&working_dir);
             if !target_dir.exists() || !target_dir.is_dir() {
-                let i18n = window.get_i18n();
-                window.set_log_content(format!("{}\n", i18n.log_error_dir_not_exist).into());
+                // Note: Log messages are not localized as they are for file processing output
+                window.set_log_content("❌ Error: Directory does not exist\n".into());
                 return;
             }
 
-            // Get i18n strings before spawning thread
-            let i18n = window.get_i18n();
-            let log_scanning = i18n.log_scanning.to_string();
-
             window.set_app_state(AppState::Working);
             window.set_progress(0.0);
-            window.set_log_content(format!("{}\n", log_scanning).into());
+            window.set_log_content("🔍 Scanning files...\n".into());
 
             // 在新线程中处理文件
             let window_weak_thread = window_weak.clone();
@@ -595,18 +495,10 @@ fn main() -> anyhow::Result<()> {
     });
 
     // ========================================================================
-    // 切换语言
+    // 打开 GitHub 链接 (Task 2)
     // ========================================================================
-    let main_window_weak = main_window.as_weak();
-    main_window.on_change_language(move |lang| {
-        if let Some(window) = main_window_weak.upgrade() {
-            window.set_current_language(lang.clone());
-            if lang == "en" {
-                window.set_i18n(get_en_strings());
-            } else {
-                window.set_i18n(get_zh_strings());
-            }
-        }
+    main_window.on_open_github(move || {
+        open_github_url();
     });
 
     // ========================================================================
