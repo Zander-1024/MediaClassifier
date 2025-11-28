@@ -9,12 +9,12 @@ use crate::metadata::extract_date;
 use crate::rule_matcher::RuleMatcher;
 
 /// 文件分类结果
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ClassifyResult {
     /// 成功移动文件
     Success { from: PathBuf, to: PathBuf },
     /// 跳过文件（已存在且相同）
-    Skipped { path: PathBuf },
+    Skipped { path: PathBuf, reason: String },
     /// 重命名后移动
     Renamed { from: PathBuf, to: PathBuf },
     /// 失败
@@ -94,6 +94,7 @@ pub fn classify_file_with_config(
             info!("Skipped: {:?} - {}", source, reason);
             Ok(ClassifyResult::Skipped {
                 path: source.to_path_buf(),
+                reason,
             })
         },
         ConflictResolution::Rename(new_target) => {
