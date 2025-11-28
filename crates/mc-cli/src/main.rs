@@ -169,7 +169,7 @@ fn main() -> Result<()> {
     for (index, file) in media_files.iter().enumerate() {
         // 在终端显示进度（覆盖同一行）
         print!("\r⚙️  Processing: [{}/{}]", index + 1, total);
-        stdout().flush().ok();
+        let _ = stdout().flush();
 
         match classify_file_with_config(&config, &target_dir, file) {
             Ok(result) => {
@@ -223,7 +223,7 @@ fn log_result(result: &ClassifyResult) {
 }
 
 /// 初始化日志系统
-fn init_logger(log_path: &PathBuf) -> Result<()> {
+fn init_logger(log_path: &Path) -> Result<()> {
     CombinedLogger::init(vec![WriteLogger::new(
         LevelFilter::Info,
         simplelog::Config::default(),
