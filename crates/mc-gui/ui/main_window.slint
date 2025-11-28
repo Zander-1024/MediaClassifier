@@ -474,7 +474,8 @@ export component MainWindow inherits Window {
                         border-width: 1px;
                         border-color: Palette.border;
                         background: Palette.background.darker(0.02);
-                        ScrollView {
+                        log-scroll := ScrollView {
+                            viewport-y: min(0px, self.visible-height - self.viewport-height);
                             VerticalBox {
                                 padding: 12px;
                                 Text {
