@@ -2,6 +2,8 @@
 
 一个用 Rust 编写的智能媒体文件分类工具，能够自动根据文件类型和日期将媒体文件组织到结构化的目录中。
 
+![主界面](https://raw.githubusercontent.com/Zander-1024/MediaClassifier/main/assets/home.png)
+
 ## 功能特性
 
 - 🎯 **智能日期提取**：图片文件优先使用 EXIF 拍摄日期，其他文件使用创建时间
