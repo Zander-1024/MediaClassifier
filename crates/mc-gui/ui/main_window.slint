@@ -66,11 +66,12 @@ export enum ThemeMode {
 // ============================================================================
 export component MainWindow inherits Window {
     title: "MediaClassifier";
+    icon: @image-url("../../../assets/icon.svg");
     // Task 4: 应用尺寸缩小一些
     min-width: 700px;
-    min-height: 500px;
+    min-height: 600px;
     preferred-width: 750px;
-    preferred-height: 550px;
+    preferred-height: 650px;
     background: Palette.background;
 
     // ========================================================================
@@ -483,20 +484,18 @@ export component MainWindow inherits Window {
                                             width: 100px;
                                             spacing: 8px;
                                             alignment: center;
-                                            
                                             Rectangle {
                                                 width: 28px;
                                                 height: 28px;
                                                 border-radius: 4px;
                                                 background: touch-edit.has-hover ? Palette.accent-background : transparent;
-                                                
                                                 Text {
                                                     text: "✏️";
                                                     font-size: 16px;
                                                     vertical-alignment: center;
                                                     horizontal-alignment: center;
                                                 }
-                                                
+
                                                 touch-edit := TouchArea {
                                                     clicked => {
                                                         edit_rule(rule.id);
@@ -509,14 +508,13 @@ export component MainWindow inherits Window {
                                                 height: 28px;
                                                 border-radius: 4px;
                                                 background: touch-delete.has-hover ? Palette.accent-background : transparent;
-                                                
                                                 Text {
                                                     text: "🗑️";
                                                     font-size: 16px;
                                                     vertical-alignment: center;
                                                     horizontal-alignment: center;
                                                 }
-                                                
+
                                                 touch-delete := TouchArea {
                                                     clicked => {
                                                         delete_rule(rule.id);
@@ -664,7 +662,7 @@ export component MainWindow inherits Window {
             x: (parent.width - self.width) / 2;
             y: (parent.height - self.height) / 2;
             width: 450px;
-            height: 420px;
+            height: 560px;
             border-radius: 12px;
             background: Palette.background;
             drop-shadow-blur: 20px;
@@ -791,12 +789,11 @@ export component MainWindow inherits Window {
                 // 按钮区
                 HorizontalBox {
                     spacing: 12px;
-                    Rectangle {
-                        horizontal-stretch: 1;
-                    }
 
                     Button {
+                        height: 48px;
                         text: @tr("取消");
+                        visible: true;
                         clicked => {
                             cancel_add_rule();
                         }
@@ -804,6 +801,7 @@ export component MainWindow inherits Window {
 
                     Button {
                         text: @tr("保存");
+                        height: 48px;
                         primary: true;
                         clicked => {
                             save_new_rule();
@@ -883,7 +881,7 @@ export component MainWindow inherits Window {
                             background: Palette.accent-background;
                             HorizontalBox {
                                 padding-left: 12px;
-                                padding-right: 8px;
+                                padding-right: 12px;
                                 spacing: 8px;
                                 Text {
                                     text: folder;
@@ -891,12 +889,22 @@ export component MainWindow inherits Window {
                                     horizontal-stretch: 1;
                                 }
 
-                                Button {
-                                    text: "✕";
-                                    width: 24px;
-                                    height: 24px;
-                                    clicked => {
-                                        remove_exclude_folder(index);
+                                Rectangle {
+                                    width: 28px;
+                                    height: 28px;
+                                    border-radius: 4px;
+                                    background: touch-delete-folder.has-hover ? Palette.accent-background.darker(0.1) : transparent;
+                                    Text {
+                                        text: "🗑️";
+                                        font-size: 16px;
+                                        vertical-alignment: center;
+                                        horizontal-alignment: center;
+                                    }
+
+                                    touch-delete-folder := TouchArea {
+                                        clicked => {
+                                            remove_exclude_folder(index);
+                                        }
                                     }
                                 }
                             }
@@ -946,7 +954,6 @@ export component MainWindow inherits Window {
             background: Palette.background;
             drop-shadow-blur: 20px;
             drop-shadow-color: #00000040;
-            
             VerticalBox {
                 padding: 20px;
                 spacing: 16px;
@@ -958,7 +965,7 @@ export component MainWindow inherits Window {
                     font-weight: 700;
                     horizontal-alignment: center;
                 }
-                
+
                 Rectangle {
                     height: 1px;
                     background: Palette.border;
@@ -1007,7 +1014,7 @@ export component MainWindow inherits Window {
                         open_github();
                     }
                 }
-                
+
                 Rectangle {
                     height: 1px;
                     background: Palette.border;
@@ -1051,7 +1058,6 @@ export component MainWindow inherits Window {
             background: Palette.background;
             drop-shadow-blur: 20px;
             drop-shadow-color: #00000040;
-            
             VerticalBox {
                 padding: 20px;
                 spacing: 16px;
@@ -1075,8 +1081,9 @@ export component MainWindow inherits Window {
                 // 支付宝二维码
                 Image {
                     source: @image-url("../../../assets/alipay.jpg");
-                    width: 180px;
-                    height: 180px;
+                    width: 100%;
+                    // height: 300px;
+                    horizontal-alignment: center;
                     image-fit: contain;
                 }
                 
@@ -1084,6 +1091,8 @@ export component MainWindow inherits Window {
                 Button {
                     text: @tr("关闭");
                     primary: true;
+                    width: 100%;
+                    height: 48px;
                     clicked => {
                         show_donate_popup = false;
                     }
